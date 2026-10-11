@@ -3,10 +3,9 @@ import {
   GRID_ELEMENT_TYPE_LABELS_FA,
   type Geometry,
 } from "../../../types/grid";
-import {
-  CONDUCTOR_MATERIALS,
-  GRID_ELEMENT_COLORS,
-} from "../../../lib/grid-element-meta";
+import { GRID_ELEMENT_COLORS } from "../../../lib/grid-element-meta";
+import { useConductorMaterials } from "../../../hooks/useConductorMaterials";
+import { ConductorMaterial } from "../../../types/conductor";
 import {
   geometryPoints,
   lineLength,
@@ -167,23 +166,11 @@ function PropertyFields({
     case GridElementType.CONDUCTOR:
       return (
         <>
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-medium text-text-muted">
-              جنس هادی
-            </label>
-            <select
-              disabled={readOnly}
-              value={(properties.material as string) ?? CONDUCTOR_MATERIALS[0]}
-              onChange={(e) => onChange("material", e.target.value)}
-              className="rounded-lg border border-border bg-surface-2 px-3 py-2 text-xs text-text outline-none transition-colors focus:border-copper focus:ring-2 focus:ring-copper-soft disabled:opacity-60"
-            >
-              {CONDUCTOR_MATERIALS.map((m) => (
-                <option key={m} value={m}>
-                  {m}
-                </option>
-              ))}
-            </select>
-          </div>
+          <ConductorMaterialField
+            value={properties.material as string | undefined}
+            readOnly={readOnly}
+            onChange={(value) => onChange("material", value)}
+          />
           {numberField("crossSectionMm2", "سطح مقطع", "mm²")}
         </>
       );
@@ -206,6 +193,54 @@ function PropertyFields({
     default:
       return null;
   }
+}
+
+/**
+ * Conductor material picker, fed by the same backend catalog as the case
+ * form. Elements drawn before the catalog existed stored a free-text label
+ * (e.g. "مس"); that value is kept and shown as a legacy option until the
+ * user picks a catalog material, instead of being silently overwritten.
+ */
+function ConductorMaterialField({
+  value,
+  readOnly,
+  onChange,
+}: {
+  value: string | undefined;
+  readOnly: boolean;
+  onChange: (value: string) => void;
+}) {
+  const { materials, isLoading, error } = useConductorMaterials();
+
+  const current = value ?? ConductorMaterial.COPPER_ANNEALED_SOFT_DRAWN;
+  const isKnown = materials.some((material) => material.id === current);
+  // While the catalog loads (or if it failed) there is nothing to match
+  // against, so the stored value is shown as-is rather than as "legacy".
+  const showStoredOption = !isKnown && (isLoading || !!error || !!value);
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label className="text-xs font-medium text-text-muted">جنس هادی</label>
+      <select
+        disabled={readOnly}
+        value={current}
+        onChange={(e) => onChange(e.target.value)}
+        className="rounded-lg border border-border bg-surface-2 px-3 py-2 text-xs text-text outline-none transition-colors focus:border-copper focus:ring-2 focus:ring-copper-soft disabled:opacity-60"
+      >
+        {showStoredOption && (
+          <option value={current}>
+            {isLoading || error ? current : `${current} (قدیمی)`}
+          </option>
+        )}
+        {materials.map((material) => (
+          <option key={material.id} value={material.id}>
+            {material.name}
+          </option>
+        ))}
+      </select>
+      {error && <p className="text-xs text-danger">{error}</p>}
+    </div>
+  );
 }
 
 function NumberField({

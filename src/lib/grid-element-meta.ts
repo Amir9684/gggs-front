@@ -1,3 +1,4 @@
+import { ConductorMaterial } from "../types/conductor";
 import { GridElementType } from "../types/grid";
 
 /**
@@ -30,20 +31,18 @@ export const GRID_ELEMENT_GEOMETRY_KIND: Record<
   [GridElementType.GATE]: "Point",
 };
 
-/** Matches the "Copper-Clad Steel Core Wire" style material picker from the legacy tool. */
-export const CONDUCTOR_MATERIALS = [
-  "مس",
-  "مس روکش‌دار روی فولاد (Copper-Clad Steel)",
-  "فولاد گالوانیزه",
-] as const;
-
 /** Sensible starting `properties` for a freshly-drawn element, editable afterward in the properties panel. */
 export function defaultPropertiesFor(
   type: GridElementType,
 ): Record<string, unknown> {
   switch (type) {
     case GridElementType.CONDUCTOR:
-      return { material: CONDUCTOR_MATERIALS[0], crossSectionMm2: 70 };
+      // The material is a `ConductorMaterial` id from the backend catalog
+      // (`GET /conductors/materials`), the same list the case form uses.
+      return {
+        material: ConductorMaterial.COPPER_ANNEALED_SOFT_DRAWN,
+        crossSectionMm2: 70,
+      };
     case GridElementType.ROD:
       return { lengthM: 3, diameterMm: 16 };
     case GridElementType.WELL:
