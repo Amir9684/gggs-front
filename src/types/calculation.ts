@@ -1,3 +1,4 @@
+import type { CaseConductor } from "./conductor";
 import type { DesignMethod, SoilLayeringMethod } from "./design-method";
 
 /** Mirrors `CaseFault` entity on the backend. */
@@ -39,6 +40,12 @@ export interface CalculationCase {
   soilModel?: { id: string; name: string } | null;
   fault?: CaseFault | null;
   settings?: CaseSetting | null;
+  /**
+   * The conductor chosen for the case, from `getOne`/`create`. `null` when
+   * the case has none (e.g. created before conductors were stored);
+   * `undefined` on the list endpoint and from an older backend.
+   */
+  conductor?: CaseConductor | null;
   designMethod: DesignMethod;
   /** Only set when `designMethod === DesignMethod.IEEE_80_2000`. */
   soilLayering: SoilLayeringMethod | null;

@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { DesignMethod, SoilLayeringMethod } from "../types/design-method";
-import { ConductorMaterial } from "../types/conductor-material";
+import { ConductorMaterial } from "../types/conductor";
 
 const positive = (message: string) => z.number(message).positive(message);
 
@@ -20,18 +20,43 @@ export const designMethodSchema = z
   );
 
 /**
- * UI-only for now — see the note in `types/conductor-material.ts`. Not
- * part of `CreateCalculationCaseDto` either; `CalculationCaseFormModal`
- * computes the permissible area client-side (`lib/conductor-sizing.ts`)
- * and strips this out of the API payload the same way as `designMethod`.
+ * Mirrors the `conductor` object inside `createCalculationCaseSchema` on
+ * the backend. Optional numbers are left `undefined` (not sent) when the
+ * input is empty, so the backend applies its defaults (Tm = the material's
+ * fusing temperature, tc = the fault duration).
  */
-export const conductorSizingInputSchema = z.object({
-  material: z.enum(ConductorMaterial, "انتخاب جنس هادی الزامی است."),
-  ambientTempC: z
-    .number("دمای محیط الزامیست")
-    .gte(-40, "دمای محیط نامعتبر است.")
-    .lte(80, "دمای محیط نامعتبر است."),
-});
+export const caseConductorSchema = z
+  .object({
+    material: z.enum(
+      ConductorMaterial,
+      "هادی انتخاب نشده است. لطفاً جنس هادی را انتخاب کنید.",
+    ),
+    ambientTemperature: z
+      .number("دمای محیط الزامیست")
+      .gte(-40, "دمای محیط نامعتبر است.")
+      .lte(80, "دمای محیط نامعتبر است."),
+    allowableTemperature: z
+      .number("دمای مجاز هادی باید عدد باشد.")
+      .positive("دمای مجاز هادی باید مثبت باشد.")
+      .optional(),
+    sizingDuration: z
+      .number("مدت زمان عبور جریان باید عدد باشد.")
+      .positive("مدت زمان عبور جریان باید مثبت باشد.")
+      .optional(),
+    crossSectionMm2: z
+      .number("سطح مقطع هادی باید عدد باشد.")
+      .positive("سطح مقطع هادی باید مثبت باشد.")
+      .optional(),
+  })
+  .refine(
+    (data) =>
+      data.allowableTemperature === undefined ||
+      data.allowableTemperature > data.ambientTemperature,
+    {
+      message: "دمای مجاز هادی باید بیشتر از دمای محیط باشد.",
+      path: ["allowableTemperature"],
+    },
+  );
 
 /** Mirrors the `fault` object inside `createCalculationCaseSchema` on the backend. */
 export const caseFaultSchema = z.object({
@@ -69,7 +94,7 @@ export const calculationCaseSchema = z.object({
   fault: caseFaultSchema,
   settings: caseSettingSchema,
   designMethod: designMethodSchema,
-  conductorSizing: conductorSizingInputSchema,
+  conductor: caseConductorSchema,
 });
 
 /** Pre-validation shape — what `register`/`defaultValues` work with (numeric fields may be `undefined` before coercion). */

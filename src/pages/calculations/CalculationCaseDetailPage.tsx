@@ -22,8 +22,7 @@ import {
   DESIGN_METHOD_LABELS_FA,
   SOIL_LAYERING_LABELS_FA,
 } from "../../types/design-method";
-import { CONDUCTOR_MATERIAL_LABELS_FA } from "../../types/conductor-material";
-import { getConductorSizing } from "../../lib/conductor-material-store";
+import { ConductorSummaryCard } from "../../components/calculations/ConductorSummaryCard";
 
 export function CalculationCaseDetailPage() {
   const { projectId, caseId } = useParams<{
@@ -152,9 +151,6 @@ export function CalculationCaseDetailPage() {
   // Real API fields now — see `enum/index.ts` in the backend's
   // `calculations` module.
   const designMethod = calculationCase.designMethod;
-  // Still client-side only — the backend has no conductor/sizing concept
-  // at all yet, see the note in `types/conductor-material.ts`.
-  const conductorSizing = getConductorSizing(caseId);
 
   return (
     <div>
@@ -224,21 +220,7 @@ export function CalculationCaseDetailPage() {
         )}
       </div>
 
-      {conductorSizing && (
-        <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-border-soft bg-surface p-4 text-xs">
-          <span className="text-text-faint">جنس هادی:</span>
-          <span className="rounded-full border border-copper/40 px-2.5 py-0.5 font-mono text-copper-text">
-            {CONDUCTOR_MATERIAL_LABELS_FA[conductorSizing.material]}
-          </span>
-          <span
-            className="rounded-full border border-border px-2.5 py-0.5 font-mono text-text-muted"
-            dir="ltr"
-          >
-            حداقل سطح مقطع: {conductorSizing.areaMm2.toFixed(1)} mm² (
-            {conductorSizing.areaKcmil.toFixed(0)} kcmil)
-          </span>
-        </div>
-      )}
+      <ConductorSummaryCard conductor={calculationCase.conductor} />
 
       <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
         <div className="rounded-xl border border-border-soft bg-surface p-5">

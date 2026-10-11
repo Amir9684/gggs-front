@@ -19,12 +19,8 @@ import {
   DESIGN_METHOD_LABELS_FA,
   SOIL_LAYERING_LABELS_FA,
 } from "../../types/design-method";
-import {
-  ConductorMaterial,
-  CONDUCTOR_MATERIAL_LABELS_FA,
-} from "../../types/conductor-material";
-import { calculateConductorSizing } from "../../lib/conductor-sizing";
-import { setConductorSizing } from "../../lib/conductor-material-store";
+import { useConductorMaterials } from "../../hooks/useConductorMaterials";
+import { ConductorSizingPreview } from "./ConductorSizingPreview";
 import { deriveDecrementFactor } from "../../lib/decrement-factor";
 import {
   calculationCaseSchema,
@@ -115,9 +111,14 @@ export function CalculationCaseFormModal({
         method: DesignMethod.IEEE_80_2000,
         soilLayering: SoilLayeringMethod.ONE_LAYER,
       },
-      conductorSizing: {
-        material: ConductorMaterial.COPPER_CLAD_STEEL_WIRE,
-        ambientTempC: 40,
+      conductor: {
+        // No material is pre-selected: like the Windows app, the user has
+        // to choose a conductor deliberately.
+        material: undefined,
+        ambientTemperature: 40,
+        allowableTemperature: undefined,
+        sizingDuration: undefined,
+        crossSectionMm2: undefined,
       },
     },
   });
@@ -126,28 +127,23 @@ export function CalculationCaseFormModal({
   // the sub-select for it and clear it out of the payload otherwise.
   const selectedMethod = watch("designMethod.method");
 
-  // Live permissible-area preview as the user fills in fault current/
-  // duration and picks a material — same inputs the sizing engine needs.
+  // Inputs of the live conductor-sizing preview (calculated by the backend).
   const watchedFaultCurrent = watch("fault.faultCurrent");
   const watchedFaultDuration = watch("fault.faultDuration");
   const watchedDecrementFactor = watch("fault.decrementFactor");
-  const watchedMaterial = watch("conductorSizing.material");
-  const watchedAmbientTemp = watch("conductorSizing.ambientTempC");
+  const watchedMaterial = watch("conductor.material");
+  const watchedAmbientTemp = watch("conductor.ambientTemperature");
+  const watchedAllowableTemp = watch("conductor.allowableTemperature");
+  const watchedSizingDuration = watch("conductor.sizingDuration");
+  const watchedCrossSection = watch("conductor.crossSectionMm2");
 
-  const sizingPreview =
-    typeof watchedFaultCurrent === "number" &&
-    watchedFaultCurrent > 0 &&
-    typeof watchedFaultDuration === "number" &&
-    watchedFaultDuration > 0 &&
-    watchedMaterial &&
-    typeof watchedAmbientTemp === "number"
-      ? calculateConductorSizing({
-          faultCurrentKA: watchedFaultCurrent / 1000,
-          faultDurationS: watchedFaultDuration,
-          material: watchedMaterial,
-          ambientTempC: watchedAmbientTemp,
-        })
-      : null;
+  const {
+    materials,
+    isLoading: isLoadingMaterials,
+    error: materialsError,
+    findMaterial,
+  } = useConductorMaterials();
+  const selectedMaterial = findMaterial(watchedMaterial);
 
   // Df the backend will use: the typed override when there is one,
   // otherwise the value derived from the fault duration.
@@ -159,28 +155,11 @@ export function CalculationCaseFormModal({
   const onSubmit: SubmitHandler<CalculationCaseFormValues> = async (values) => {
     setApiErrors([]);
     try {
-      // `conductorSizing` still has no home on the backend (see
-      // `types/conductor-material.ts`) — keep that out of the payload and
-      // stash it client-side. `designMethod` is sent for real now that
-      // `CalculationCase.designMethod`/`soilLayering` exist on the server.
-      // `fault.decrementFactor` is left out of the JSON when empty, so the
-      // backend derives it from `fault.faultDuration`.
-      const { conductorSizing, ...payload } = values;
-      const created = await calculationCasesApi.create({
-        projectId,
-        ...payload,
-      });
-      const sizing = calculateConductorSizing({
-        faultCurrentKA: values.fault.faultCurrent / 1000,
-        faultDurationS: values.fault.faultDuration,
-        material: conductorSizing.material,
-        ambientTempC: conductorSizing.ambientTempC,
-      });
-      setConductorSizing(created.id, {
-        material: conductorSizing.material,
-        ambientTempC: conductorSizing.ambientTempC,
-        ...sizing,
-      });
+      // `decrementFactor` and the optional conductor numbers are left out
+      // of the JSON when empty, so the backend applies its defaults (Df from
+      // the fault duration, Tm = the material's fusing temperature,
+      // tc = the fault duration).
+      await calculationCasesApi.create({ projectId, ...values });
       onSaved();
     } catch (err) {
       setApiErrors(
@@ -294,46 +273,101 @@ export function CalculationCaseFormModal({
           </div>
 
           <div className="rounded-lg border border-border-soft bg-surface-2 p-3">
+            {materialsError && <ErrorBanner messages={[materialsError]} />}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <SelectField
-                id="conductorSizing.material"
+                id="conductor.material"
                 label="جنس هادی"
-                error={errors.conductorSizing?.material?.message}
-                {...register("conductorSizing.material")}
+                disabled={isLoadingMaterials || !!materialsError}
+                error={errors.conductor?.material?.message}
+                {...register("conductor.material")}
               >
-                {Object.values(ConductorMaterial).map((material) => (
-                  <option key={material} value={material}>
-                    {CONDUCTOR_MATERIAL_LABELS_FA[material]}
+                <option value="">
+                  {isLoadingMaterials ? "در حال بارگذاری…" : "انتخاب کنید…"}
+                </option>
+                {materials.map((material) => (
+                  <option key={material.id} value={material.id}>
+                    {material.name}
                   </option>
                 ))}
               </SelectField>
 
               <FormField
-                id="conductorSizing.ambientTempC"
+                id="conductor.ambientTemperature"
                 label="دمای محیط (°C)"
                 type="number"
                 step="any"
                 inputMode="decimal"
-                error={errors.conductorSizing?.ambientTempC?.message}
-                {...register("conductorSizing.ambientTempC", {
+                error={errors.conductor?.ambientTemperature?.message}
+                {...register("conductor.ambientTemperature", {
                   valueAsNumber: true,
+                })}
+              />
+
+              <FormField
+                id="conductor.allowableTemperature"
+                label="دمای مجاز هادی (°C) (اختیاری)"
+                type="number"
+                step="any"
+                inputMode="decimal"
+                placeholder={
+                  selectedMaterial
+                    ? `پیش‌فرض: ${selectedMaterial.fusingTemperature}`
+                    : "پیش‌فرض: دمای ذوب جنس هادی"
+                }
+                error={errors.conductor?.allowableTemperature?.message}
+                // `valueAsNumber` would turn an empty input into NaN;
+                // `setValueAs` keeps "empty" as `undefined` (not sent).
+                {...register("conductor.allowableTemperature", {
+                  setValueAs: (v) =>
+                    v === "" || v == null ? undefined : Number(v),
+                })}
+              />
+
+              <FormField
+                id="conductor.sizingDuration"
+                label="مدت زمان عبور جریان tc (s) (اختیاری)"
+                type="number"
+                step="any"
+                inputMode="decimal"
+                placeholder={
+                  typeof watchedFaultDuration === "number" &&
+                  Number.isFinite(watchedFaultDuration)
+                    ? `پیش‌فرض: مدت زمان خطا (${watchedFaultDuration})`
+                    : "پیش‌فرض: مدت زمان خطا"
+                }
+                error={errors.conductor?.sizingDuration?.message}
+                {...register("conductor.sizingDuration", {
+                  setValueAs: (v) =>
+                    v === "" || v == null ? undefined : Number(v),
+                })}
+              />
+
+              <FormField
+                id="conductor.crossSectionMm2"
+                label="سطح مقطع هادی (mm²) (اختیاری)"
+                type="number"
+                step="any"
+                inputMode="decimal"
+                error={errors.conductor?.crossSectionMm2?.message}
+                {...register("conductor.crossSectionMm2", {
+                  setValueAs: (v) =>
+                    v === "" || v == null ? undefined : Number(v),
                 })}
               />
             </div>
 
-            <p
-              className="mt-2 font-mono text-xs tabular text-text-muted"
-              dir="ltr"
-            >
-              {sizingPreview
-                ? `سطح مقطع حداقل مجاز: ${sizingPreview.areaMm2.toFixed(
-                    1
-                  )} mm² (${sizingPreview.areaKcmil.toFixed(0)} kcmil)`
-                : "برای محاسبهٔ سطح مقطع، جریان و مدت‌زمان خطا را وارد کنید."}
-            </p>
+            <ConductorSizingPreview
+              material={watchedMaterial}
+              faultCurrent={watchedFaultCurrent}
+              duration={watchedSizingDuration ?? watchedFaultDuration}
+              ambientTemperature={watchedAmbientTemp}
+              allowableTemperature={watchedAllowableTemp}
+              crossSectionMm2={watchedCrossSection}
+            />
             <p className="mt-1 text-xs text-text-faint">
-              بر اساس معادلهٔ ذوب هادی IEEE 80-2013 (Eq. 37)؛ فعلاً فقط در
-              مرورگر محاسبه و برای این کیس ذخیره می‌شود.
+              بر اساس معادلهٔ ذوب هادی IEEE 80 (Eq. 37) و جدول مواد IEEE 80؛ همان
+              مقدار همراه کیس ذخیره می‌شود.
             </p>
           </div>
 

@@ -1,6 +1,7 @@
 import { apiClient } from "../lib/api-client";
 import type { PaginatedResult } from "../types/api";
 import type { CalculationCase, CalculationResult } from "../types/calculation";
+import type { CaseConductorPayload } from "../types/conductor";
 import type { DesignMethod, SoilLayeringMethod } from "../types/design-method";
 
 /** Matches the `fault` object inside `createCalculationCaseSchema`. */
@@ -35,6 +36,8 @@ export interface CreateCalculationCasePayload {
   };
   fault: CaseFaultPayload;
   settings: CaseSettingPayload;
+  /** Optional on the API; the form always sends it (a conductor is required there). */
+  conductor?: CaseConductorPayload;
 }
 
 /**
