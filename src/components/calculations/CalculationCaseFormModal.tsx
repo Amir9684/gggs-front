@@ -49,6 +49,12 @@ export function CalculationCaseFormModal({
   const [grids, setGrids] = useState<Grid[]>([]);
   const [soilModels, setSoilModels] = useState<SoilModel[]>([]);
   const [isLoadingOptions, setIsLoadingOptions] = useState(true);
+  // Soil model fetched (with its layers) to check a two-layer selection;
+  // the list endpoint does not return layers.
+  const [fetchedSoil, setFetchedSoil] = useState<{
+    id: string;
+    model: SoilModel | null;
+  } | null>(null);
   const [optionsError, setOptionsError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -123,9 +129,43 @@ export function CalculationCaseFormModal({
     },
   });
 
-  // Only IEEE 80-2000 has a one-layer/two-layer submenu in the demo — show
-  // the sub-select for it and clear it out of the payload otherwise.
+  // Both IEEE methods have a one-layer/two-layer sub-select.
   const selectedMethod = watch("designMethod.method");
+  const watchedSoilLayering = watch("designMethod.soilLayering");
+  const watchedSoilModelId = watch("soilModelId");
+  const needsTwoLayerSoil =
+    selectedMethod !== DesignMethod.GALERKIN &&
+    watchedSoilLayering === SoilLayeringMethod.TWO_LAYER;
+
+  useEffect(() => {
+    if (!needsTwoLayerSoil || !watchedSoilModelId) return;
+    let cancelled = false;
+    soilModelsApi
+      .getOne(watchedSoilModelId)
+      .then((model) => {
+        if (!cancelled) setFetchedSoil({ id: watchedSoilModelId, model });
+      })
+      .catch(() => {
+        if (!cancelled) setFetchedSoil({ id: watchedSoilModelId, model: null });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [needsTwoLayerSoil, watchedSoilModelId]);
+
+  // `null` while loading or when the fetch failed (the backend still checks).
+  const twoLayerSoilLayers =
+    needsTwoLayerSoil &&
+    fetchedSoil?.id === watchedSoilModelId &&
+    fetchedSoil.model
+      ? [...(fetchedSoil.model.layers ?? [])].sort(
+          (a, b) => a.layerOrder - b.layerOrder
+        )
+      : null;
+  const twoLayerSoilError =
+    twoLayerSoilLayers && twoLayerSoilLayers.length !== 2
+      ? `برای خاک دولایه، مدل خاک باید دقیقاً دو لایه داشته باشد (مدل انتخاب‌شده ${twoLayerSoilLayers.length} لایه دارد).`
+      : null;
 
   // Inputs of the live conductor-sizing preview (calculated by the backend).
   const watchedFaultCurrent = watch("fault.faultCurrent");
@@ -154,6 +194,10 @@ export function CalculationCaseFormModal({
 
   const onSubmit: SubmitHandler<CalculationCaseFormValues> = async (values) => {
     setApiErrors([]);
+    if (twoLayerSoilError) {
+      setApiErrors([twoLayerSoilError]);
+      return;
+    }
     try {
       // `decrementFactor` and the optional conductor numbers are left out
       // of the JSON when empty, so the backend applies its defaults (Df from
@@ -242,7 +286,7 @@ export function CalculationCaseFormModal({
                 ))}
               </SelectField>
 
-              {selectedMethod === DesignMethod.IEEE_80_2000 && (
+              {selectedMethod !== DesignMethod.GALERKIN && (
                 <SelectField
                   id="designMethod.soilLayering"
                   label="لایه‌بندی خاک"
@@ -257,6 +301,16 @@ export function CalculationCaseFormModal({
                 </SelectField>
               )}
             </div>
+            {twoLayerSoilError && (
+              <p className="mt-2 text-xs text-danger">{twoLayerSoilError}</p>
+            )}
+            {twoLayerSoilLayers?.length === 2 && (
+              <p className="mt-2 font-mono text-xs text-text-muted" dir="ltr">
+                ρ1 = {twoLayerSoilLayers[0].resistivity} Ω·m, h1 ={" "}
+                {twoLayerSoilLayers[0].thickness} m, ρ2 ={" "}
+                {twoLayerSoilLayers[1].resistivity} Ω·m
+              </p>
+            )}
             {selectedMethod === DesignMethod.GALERKIN ? (
               <p className="mt-2 text-xs text-copper-text">
                 این انتخاب ذخیره می‌شود، اما اجرای محاسبه با موتور «

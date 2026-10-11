@@ -136,6 +136,12 @@ export function SoilModelFormModal({
             </button>
           </div>
 
+          <p className="text-xs text-text-faint">
+            برای خاک دولایه (IEEE) دقیقاً دو لایه تعریف کنید: لایهٔ اول لایهٔ
+            بالایی با مقاومت ρ1 و ضخامت h1 است و لایهٔ دوم، لایهٔ پایینی با
+            مقاومت ρ2.
+          </p>
+
           {errors.layers?.root?.message && (
             <p className="text-xs text-danger">{errors.layers.root.message}</p>
           )}
@@ -150,7 +156,7 @@ export function SoilModelFormModal({
                 className="flex items-end gap-2 rounded-lg border border-border-soft bg-surface-2 p-3"
               >
                 <span className="pb-2.5 font-mono text-xs text-text-faint">
-                  {index + 1}
+                  {fields.length === 2 ? (index === 0 ? "ρ1" : "ρ2") : index + 1}
                 </span>
                 <div className="flex-1">
                   <FormField
