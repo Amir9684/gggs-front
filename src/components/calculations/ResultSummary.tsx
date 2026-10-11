@@ -212,6 +212,37 @@ export function ResultSummary({ result, bodyWeight }: ResultSummaryProps) {
                 <dd>{details.geometricFactors.kiStep.toFixed(4)}</dd>
               </div>
             )}
+            {details.twoLayer && (
+              <>
+                <div>
+                  <dt className="text-text-faint">rho1 / rho2</dt>
+                  <dd>
+                    {details.twoLayer.upperResistivity} /{" "}
+                    {details.twoLayer.lowerResistivity} Ω·m
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-text-faint">hs (upper layer)</dt>
+                  <dd>{details.twoLayer.upperThickness} m</dd>
+                </div>
+                <div>
+                  <dt className="text-text-faint">Xhor</dt>
+                  <dd>{details.twoLayer.xhor.toFixed(4)}</dd>
+                </div>
+                <div>
+                  <dt className="text-text-faint">Yhor</dt>
+                  <dd>{details.twoLayer.yhor.toFixed(4)}</dd>
+                </div>
+                <div>
+                  <dt className="text-text-faint">Cm (mesh)</dt>
+                  <dd>{details.twoLayer.meshCorrection.toFixed(4)}</dd>
+                </div>
+                <div>
+                  <dt className="text-text-faint">Cs (step, soil)</dt>
+                  <dd>{details.twoLayer.stepCorrection.toFixed(4)}</dd>
+                </div>
+              </>
+            )}
             {grid && (
               <>
                 <div>

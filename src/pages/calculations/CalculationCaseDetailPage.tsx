@@ -202,7 +202,7 @@ export function CalculationCaseDetailPage() {
         <span className="rounded-full border border-copper/40 px-2.5 py-0.5 font-mono text-copper-text">
           {DESIGN_METHOD_LABELS_FA[designMethod]}
         </span>
-        {designMethod === DesignMethod.IEEE_80_2000 &&
+        {designMethod !== DesignMethod.GALERKIN &&
           calculationCase.soilLayering && (
             <span className="rounded-full border border-border px-2.5 py-0.5 font-mono text-text-muted">
               {SOIL_LAYERING_LABELS_FA[calculationCase.soilLayering]}
