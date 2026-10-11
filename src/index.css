@@ -1,0 +1,61 @@
+@import "tailwindcss";
+
+@import "@fontsource/vazirmatn/400.css";
+@import "@fontsource/vazirmatn/500.css";
+@import "@fontsource/vazirmatn/600.css";
+@import "@fontsource/vazirmatn/700.css";
+@import "@fontsource/jetbrains-mono/400.css";
+@import "@fontsource/jetbrains-mono/500.css";
+
+/*
+  Design tokens — "grounding grid" identity.
+  Cool graphite/schematic background (not the warm-cream default) with a
+  copper-wire accent, since copper conductor is the literal material a
+  grounding grid is built from. Vazirmatn carries Persian UI text;
+  JetBrains Mono is reserved for technical data — IDs, role tags, codes.
+*/
+@theme {
+  --font-sans: 'Vazirmatn', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'Courier New', monospace;
+
+  --color-bg: #0e1417;
+  --color-surface: #151d22;
+  --color-surface-2: #1c262c;
+  --color-border: #29353c;
+  --color-border-soft: #202b31;
+
+  --color-text: #e8eef0;
+  --color-text-muted: #8fa0a8;
+  --color-text-faint: #5c6b72;
+
+  --color-copper: #c97a45;
+  --color-copper-soft: #e0966280;
+  --color-copper-hover: #d98c56;
+  --color-copper-text: #f0a877;
+
+  --color-danger: #e5484d;
+  --color-success: #4fae7a;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+}
+
+/* Persian numerals read poorly in tabular UI contexts; keep digits latin */
+.font-mono, .tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
