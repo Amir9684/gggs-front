@@ -29,7 +29,7 @@ export interface CreateCalculationCasePayload {
   soilModelId: string;
   name: string;
   description?: string;
-  /** `soilLayering` is required only when `method === DesignMethod.IEEE_80_2000`. */
+  /** `soilLayering` is required for IEEE 80-2000; IEEE 80-86 defaults to one layer when omitted. */
   designMethod: {
     method: DesignMethod;
     soilLayering?: SoilLayeringMethod;

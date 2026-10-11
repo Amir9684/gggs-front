@@ -47,7 +47,7 @@ export interface CalculationCase {
    */
   conductor?: CaseConductor | null;
   designMethod: DesignMethod;
-  /** Only set when `designMethod === DesignMethod.IEEE_80_2000`. */
+  /** Set for the IEEE methods; `null` for Galerkin. */
   soilLayering: SoilLayeringMethod | null;
   createdAt: string;
   updatedAt: string;
@@ -95,6 +95,24 @@ export interface GridMeshSummary {
   totalRodLength: number;
 }
 
+/** Two-layer soil correction of the mesh and step voltages (`two-layer-soil.engine`). */
+export interface TwoLayerSoilCorrection {
+  /** Upper layer resistivity, rho1 (ohm-m). */
+  upperResistivity: number;
+  /** Lower layer resistivity, rho2 (ohm-m). */
+  lowerResistivity: number;
+  /** Upper layer thickness, hs (m). */
+  upperThickness: number;
+  /** Exponent of the mesh correction. */
+  xhor: number;
+  /** Exponent of the step correction. */
+  yhor: number;
+  /** Mesh (touch) voltage correction, Cm = (rho2/rho1)^Xhor. */
+  meshCorrection: number;
+  /** Step voltage correction, Cs = (rho2/rho1)^Yhor (not the surface-layer Cs). */
+  stepCorrection: number;
+}
+
 /** Intermediate engine values kept with every result. */
 export interface CalculationResultDetails {
   effectiveGridCurrent: number;
@@ -121,6 +139,8 @@ export interface CalculationResultDetails {
   /** True when GPR <= permissible touch voltage: safe at every point. */
   safeForEveryPoint: boolean;
   grid: GridMeshSummary;
+  /** Two-layer soil correction; `null` for uniform soil, absent on older results. */
+  twoLayer?: TwoLayerSoilCorrection | null;
 }
 
 /**
