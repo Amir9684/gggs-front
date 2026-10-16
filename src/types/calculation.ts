@@ -173,3 +173,31 @@ export interface CalculationResult {
   /** Only present on the response from `getResults`. */
   voltageProfile?: VoltageProfilePoint[];
 }
+
+/**
+ * Response of `POST /calculation-cases/:id/preview`: the engine's numbers
+ * for the case's inputs (optionally with overrides), nothing saved. Same
+ * field names as `CalculationResult`, so the result views can show it.
+ */
+export interface CalculationPreview {
+  gridResistance: number;
+  gpr: number;
+  meshVoltage: number;
+  touchVoltage: number;
+  stepVoltage: number;
+  permissibleTouchVoltage: number;
+  permissibleStepVoltage: number;
+  safe: boolean;
+  /** Df actually used (derived from the fault duration unless overridden). */
+  decrementFactor: number;
+  grid: {
+    length: number;
+    width: number;
+    burialDepth: number;
+    area: number;
+    totalConductorLength: number;
+    rodCount: number;
+    totalRodLength: number;
+  };
+  details: CalculationResultDetails;
+}

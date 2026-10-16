@@ -1,6 +1,10 @@
 import { apiClient } from "../lib/api-client";
 import type { PaginatedResult } from "../types/api";
-import type { CalculationCase, CalculationResult } from "../types/calculation";
+import type {
+  CalculationCase,
+  CalculationPreview,
+  CalculationResult,
+} from "../types/calculation";
 import type { CaseConductorPayload } from "../types/conductor";
 import type { DesignMethod, SoilLayeringMethod } from "../types/design-method";
 
@@ -63,6 +67,16 @@ export interface GetCalculationCasesQuery {
   pageSize?: number;
 }
 
+/**
+ * Matches `previewCalculationSchema` (`PreviewCalculationDto`). Every field
+ * is optional and replaces the stored value for that one preview only.
+ */
+export interface PreviewCalculationPayload {
+  grid?: { length?: number; width?: number; burialDepth?: number };
+  fault?: Partial<CaseFaultPayload>;
+  settings?: Partial<CaseSettingPayload>;
+}
+
 export const calculationCasesApi = {
   getAll: (query: GetCalculationCasesQuery = {}) =>
     apiClient.get<PaginatedResult<CalculationCase>>("/calculation-cases", {
@@ -84,6 +98,16 @@ export const calculationCasesApi = {
   /** Runs the IEEE 80 engine for this case and persists a new result. */
   run: (id: string) =>
     apiClient.post<CalculationResult>(`/calculation-cases/${id}/run`),
+
+  /**
+   * "What if": runs the same calculation as `run` with optional overrides
+   * and returns the numbers without saving a result or changing the case.
+   */
+  preview: (id: string, payload: PreviewCalculationPayload = {}) =>
+    apiClient.post<CalculationPreview>(
+      `/calculation-cases/${id}/preview`,
+      payload,
+    ),
 
   /** Fetches the most recent result (with its sample maps) for this case. */
   getResults: (id: string) =>

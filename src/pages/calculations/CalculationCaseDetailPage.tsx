@@ -4,6 +4,7 @@ import { Link, Navigate, useNavigate, useParams } from "react-router";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { FullScreenSpinner } from "../../components/FullScreenSpinner";
 import { CalculationCaseRenameModal } from "../../components/calculations/CalculationCaseRenameModal";
+import { LiveRecalculationPanel } from "../../components/calculations/LiveRecalculationPanel";
 import { ResultSummary } from "../../components/calculations/ResultSummary";
 import { VoltageHeatmap } from "../../components/calculations/VoltageHeatmap";
 import { VoltageSurface3D } from "../../components/calculations/VoltageSurface3D";
@@ -49,6 +50,7 @@ export function CalculationCaseDetailPage() {
   const [reportNotice, setReportNotice] = useState<string | null>(null);
   const [touchViewMode, setTouchViewMode] = useState<"2d" | "3d">("3d");
   const [stepViewMode, setStepViewMode] = useState<"2d" | "3d">("2d");
+  const [isLiveOpen, setIsLiveOpen] = useState(false);
 
   // Reviewers can inspect a case and its results but not run new
   // calculations, edit, or delete it — same convention as the grid editor.
@@ -408,6 +410,32 @@ export function CalculationCaseDetailPage() {
             </div>
           )}
         </div>
+      </div>
+
+      <div className="mt-6 rounded-xl border border-border-soft bg-surface p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 className="text-sm font-bold text-text">محاسبهٔ سریع (پیش‌نمایش)</h3>
+            <p className="mt-0.5 text-xs text-text-muted">
+              با اسلایدرها ورودی‌ها را تغییر دهید و نتیجه را همان لحظه ببینید.
+              چیزی ذخیره نمی‌شود و نتایج و ورودی‌های کیس تغییر نمی‌کنند.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsLiveOpen((open) => !open)}
+            aria-expanded={isLiveOpen}
+            className="rounded-lg border border-copper/50 px-4 py-2 text-sm font-medium text-copper-text transition-colors hover:bg-copper/10"
+          >
+            {isLiveOpen ? "بستن" : "باز کردن"}
+          </button>
+        </div>
+
+        {isLiveOpen && (
+          <div className="mt-4">
+            <LiveRecalculationPanel calculationCase={calculationCase} />
+          </div>
+        )}
       </div>
 
       {isEditing && (
