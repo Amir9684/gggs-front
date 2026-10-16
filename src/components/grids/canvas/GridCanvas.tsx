@@ -42,6 +42,8 @@ import {
   type SelectedElementSummary,
 } from "./GridElementPropertiesPanel";
 import { GridSnapshotsPanel } from "./GridSnapshotsPanel";
+import { GridGeneratorModal } from "../generator/GridGeneratorModal";
+import type { GeneratedGrid } from "../../../lib/grid-generator";
 
 export type CanvasTool = "select" | GridElementType;
 
@@ -85,9 +87,31 @@ interface GridCanvasProps {
   grid: Grid;
   /** Reviewers can pan/zoom/inspect but not draw, move, delete, or save. */
   readOnly?: boolean;
+  /**
+   * Called after a save that also changed the grid's dimensions (the grid
+   * generator can), so the page can show the new size.
+   */
+  onGridChange?: (grid: Grid) => void;
 }
 
-export function GridCanvas({ grid, readOnly = false }: GridCanvasProps) {
+/** Plan size / depth a generated layout asks for, not saved yet. */
+type PendingDimensions = { length: number; width: number; burialDepth: number };
+
+export function GridCanvas({
+  grid: savedGrid,
+  readOnly = false,
+  onGridChange,
+}: GridCanvasProps) {
+  // The size the canvas draws: the saved one, unless a generated layout
+  // changed it and the change has not been saved yet.
+  const [pendingDimensions, setPendingDimensions] =
+    useState<PendingDimensions | null>(null);
+  const grid = useMemo<Grid>(
+    () => (pendingDimensions ? { ...savedGrid, ...pendingDimensions } : savedGrid),
+    [savedGrid, pendingDimensions],
+  );
+  const [isGeneratorOpen, setIsGeneratorOpen] = useState(false);
+
   const containerRef = useRef<HTMLDivElement | null>(null);
   const svgRef = useRef<SVGSVGElement | null>(null);
   const dragStateRef = useRef<DragState>(null);
@@ -113,8 +137,9 @@ export function GridCanvas({ grid, readOnly = false }: GridCanvasProps) {
     setIsLoading(true);
     setLoadError(null);
     try {
-      const list = await gridElementsApi.getAll({ gridId: grid.id });
+      const list = await gridElementsApi.getAll({ gridId: savedGrid.id });
       setElements(list.map(fromServer));
+      setPendingDimensions(null);
       setIsDirty(false);
       setSelectedClientId(null);
     } catch (err) {
@@ -126,7 +151,7 @@ export function GridCanvas({ grid, readOnly = false }: GridCanvasProps) {
     } finally {
       setIsLoading(false);
     }
-  }, [grid.id]);
+  }, [savedGrid.id]);
 
   useEffect(() => {
     fetchElements();
@@ -404,7 +429,8 @@ export function GridCanvas({ grid, readOnly = false }: GridCanvasProps) {
     setSaveError(null);
     try {
       const saved = await gridElementsApi.saveBulk({
-        gridId: grid.id,
+        gridId: savedGrid.id,
+        ...(pendingDimensions ? { grid: pendingDimensions } : {}),
         elements: elements.map((e) => ({
           type: e.type,
           geometry: e.geometry,
@@ -412,6 +438,10 @@ export function GridCanvas({ grid, readOnly = false }: GridCanvasProps) {
         })),
       });
       setElements(saved.map(fromServer));
+      if (pendingDimensions) {
+        onGridChange?.({ ...savedGrid, ...pendingDimensions });
+        setPendingDimensions(null);
+      }
       setIsDirty(false);
       setSelectedClientId(null);
     } catch (err) {
@@ -423,12 +453,32 @@ export function GridCanvas({ grid, readOnly = false }: GridCanvasProps) {
     }
   };
 
+  /** Puts a generated layout on the canvas as unsaved changes. */
+  const handleGenerated = (generated: GeneratedGrid) => {
+    setElements(
+      generated.elements.map((element) => ({
+        clientId: newClientId(),
+        id: null,
+        type: element.type,
+        geometry: element.geometry,
+        properties: element.properties,
+      })),
+    );
+    setPendingDimensions(generated.dimensions);
+    setIsDirty(true);
+    setSelectedClientId(null);
+    setDraftPoints([]);
+    setTool("select");
+    setIsGeneratorOpen(false);
+  };
+
   const handleDiscard = () => {
     fetchElements();
   };
 
   const handleRestored = (restored: GridElement[]) => {
     setElements(restored.map(fromServer));
+    setPendingDimensions(null);
     setIsDirty(false);
     setSelectedClientId(null);
     setDraftPoints([]);
@@ -480,6 +530,7 @@ export function GridCanvas({ grid, readOnly = false }: GridCanvasProps) {
             onToolChange={changeTool}
             snapEnabled={snapEnabled}
             onSnapChange={setSnapEnabled}
+            onOpenGenerator={() => setIsGeneratorOpen(true)}
           />
         )}
 
@@ -688,12 +739,25 @@ export function GridCanvas({ grid, readOnly = false }: GridCanvasProps) {
           onDelete={deleteElement}
         />
         <GridSnapshotsPanel
-          gridId={grid.id}
+          gridId={savedGrid.id}
           hasUnsavedChanges={isDirty}
           readOnly={readOnly}
           onRestored={handleRestored}
         />
       </div>
+
+      {isGeneratorOpen && (
+        <GridGeneratorModal
+          initial={{
+            length: grid.length,
+            width: grid.width,
+            burialDepth: grid.burialDepth,
+          }}
+          replacesElements={elements.length > 0}
+          onClose={() => setIsGeneratorOpen(false)}
+          onApply={handleGenerated}
+        />
+      )}
     </div>
   );
 }

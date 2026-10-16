@@ -5,7 +5,7 @@ interface ModalProps {
   onClose: () => void;
   children: ReactNode;
   /** Slightly wider variant for forms with several fields. */
-  size?: "sm" | "md";
+  size?: "sm" | "md" | "lg";
 }
 
 /**
@@ -34,7 +34,7 @@ export function Modal({ title, onClose, children, size = "sm" }: ModalProps) {
         aria-labelledby="modal-title"
         onClick={(e) => e.stopPropagation()}
         className={`w-full rounded-xl border border-border-soft bg-surface p-6 shadow-xl ${
-          size === "md" ? "max-w-lg" : "max-w-sm"
+          size === "lg" ? "max-w-3xl" : size === "md" ? "max-w-lg" : "max-w-sm"
         }`}
       >
         <div className="mb-5 flex items-center justify-between">

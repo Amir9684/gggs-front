@@ -77,7 +77,7 @@ export function GridEditorPage() {
       </div>
 
       <div className="mt-6">
-        <GridCanvas grid={grid} readOnly={readOnly} />
+        <GridCanvas grid={grid} readOnly={readOnly} onGridChange={setGrid} />
       </div>
     </div>
   );

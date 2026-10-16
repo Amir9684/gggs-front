@@ -19,6 +19,16 @@ export interface BulkGridElementPayload {
 /** Matches `createGridElementsBulkSchema` (`CreateGridElementsBulkDto`). */
 export interface SaveGridElementsBulkPayload {
   gridId: string;
+  /**
+   * New plan size / burial depth of the grid, saved in the same transaction
+   * as the elements (a generated layout and its grid dimensions must not be
+   * saved apart). Omitted fields are left unchanged.
+   */
+  grid?: {
+    length?: number;
+    width?: number;
+    burialDepth?: number;
+  };
   elements: BulkGridElementPayload[];
 }
 

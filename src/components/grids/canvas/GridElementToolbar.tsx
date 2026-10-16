@@ -22,6 +22,8 @@ interface GridElementToolbarProps {
   onToolChange: (tool: CanvasTool) => void;
   snapEnabled: boolean;
   onSnapChange: (enabled: boolean) => void;
+  /** Opens the parametric grid generator; the button is hidden without it. */
+  onOpenGenerator?: () => void;
   disabled?: boolean;
 }
 
@@ -30,6 +32,7 @@ export function GridElementToolbar({
   onToolChange,
   snapEnabled,
   onSnapChange,
+  onOpenGenerator,
   disabled = false,
 }: GridElementToolbarProps) {
   return (
@@ -74,6 +77,29 @@ export function GridElementToolbar({
         />
         پیوستن به شبکهٔ ۰.۵ متری
       </label>
+
+      {onOpenGenerator && (
+        <>
+          <div className="mx-1 h-6 w-px bg-border-soft" />
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={onOpenGenerator}
+            className="flex items-center gap-1.5 rounded-lg border border-copper/50 px-2.5 py-1.5 text-xs font-medium text-copper-text transition-colors hover:bg-copper/10 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <svg viewBox="0 0 16 16" className="h-4 w-4" aria-hidden="true">
+              <path
+                d="M2 5.5h12M2 10.5h12M5.5 2v12M10.5 2v12"
+                stroke="currentColor"
+                strokeWidth="1.4"
+                strokeLinecap="round"
+                fill="none"
+              />
+            </svg>
+            مولد شبکه
+          </button>
+        </>
+      )}
     </div>
   );
 }
