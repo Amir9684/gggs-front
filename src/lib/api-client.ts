@@ -114,6 +114,11 @@ export const apiClient = {
     http
       .post<ApiResponse<T>>(path, body, { skipAuth: options?.skipAuth })
       .then(unwrap<T>),
+  /** `multipart/form-data` upload (the browser sets the boundary). */
+  postForm: <T>(path: string, form: FormData, options?: RequestOptions) =>
+    http
+      .postForm<ApiResponse<T>>(path, form, { skipAuth: options?.skipAuth })
+      .then(unwrap<T>),
   put: <T>(path: string, body?: unknown, options?: RequestOptions) =>
     http
       .put<ApiResponse<T>>(path, body, { skipAuth: options?.skipAuth })

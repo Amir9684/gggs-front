@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 
 import { ConfirmDialog } from "../ConfirmDialog";
 import { gridsApi } from "../../api/grids.api";
 import { ApiError } from "../../types/api";
 import type { Grid } from "../../types/grid";
 import { GridFormModal } from "./GridFormModal";
+import { LegacyImportModal } from "./LegacyImportModal";
 
 interface GridsSectionProps {
   projectId: string;
@@ -15,7 +16,9 @@ export function GridsSection({ projectId }: GridsSectionProps) {
   const [grids, setGrids] = useState<Grid[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const navigate = useNavigate();
   const [isCreating, setIsCreating] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
   const [editingGrid, setEditingGrid] = useState<Grid | null>(null);
   const [deletingGrid, setDeletingGrid] = useState<Grid | null>(null);
 
@@ -61,13 +64,22 @@ export function GridsSection({ projectId }: GridsSectionProps) {
             ابعاد و عمق دفن شبکهٔ ارت؛ هادی‌ها و میله‌ها را در طراح تعاملی رسم کنید.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => setIsCreating(true)}
-          className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-text transition-colors hover:border-copper hover:text-copper-text"
-        >
-          + شبکهٔ جدید
-        </button>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setIsImporting(true)}
+            className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-text transition-colors hover:border-copper hover:text-copper-text"
+          >
+            ورود از فایل ویندوز
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsCreating(true)}
+            className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-text transition-colors hover:border-copper hover:text-copper-text"
+          >
+            + شبکهٔ جدید
+          </button>
+        </div>
       </div>
 
       {isLoading ? (
@@ -130,6 +142,19 @@ export function GridsSection({ projectId }: GridsSectionProps) {
           onSaved={() => {
             setIsCreating(false);
             fetchGrids();
+          }}
+        />
+      )}
+
+      {isImporting && (
+        <LegacyImportModal
+          projectId={projectId}
+          onClose={() => setIsImporting(false)}
+          onImported={(grid) => {
+            setIsImporting(false);
+            fetchGrids();
+            // Open the new grid so the import can be checked right away.
+            navigate(`/projects/${projectId}/grids/${grid.id}`);
           }}
         />
       )}
