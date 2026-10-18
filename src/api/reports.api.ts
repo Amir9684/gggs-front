@@ -1,11 +1,17 @@
 import { apiClient, http } from "../lib/api-client";
 import type { PaginatedResult } from "../types/api";
-import type { Report } from "../types/report";
+import type { Report, ReportTemplate } from "../types/report";
 
 /** Matches `generateReportSchema` (`GenerateReportDto`). */
 export interface GenerateReportPayload {
   resultId: string;
   name?: string;
+  /** Defaults to `AUTO` (the template matching the case). */
+  template?: ReportTemplate;
+  /** Include the intermediate values and methodology pages. Default true. */
+  includeDetails?: boolean;
+  /** Print the fault duration as "0.5 s or more". Omitted: follows the duration. */
+  halfSecondVariant?: boolean;
 }
 
 /** Matches `GetReportsQueryDTO`. */
@@ -64,3 +70,4 @@ export const reportsApi = {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   },
 };
+

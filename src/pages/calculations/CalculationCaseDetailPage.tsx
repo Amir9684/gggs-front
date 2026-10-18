@@ -462,6 +462,9 @@ export function CalculationCaseDetailPage() {
         <GenerateReportModal
           resultId={result.id}
           defaultName={calculationCase.name}
+          designMethod={calculationCase.designMethod}
+          soilLayering={calculationCase.soilLayering}
+          faultDuration={fault?.faultDuration}
           onClose={() => setIsGeneratingReport(false)}
           onGenerated={() => {
             setIsGeneratingReport(false);
@@ -502,3 +505,4 @@ function ViewModeToggle({
     </div>
   );
 }
+

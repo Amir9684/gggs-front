@@ -141,6 +141,14 @@ export interface CalculationResultDetails {
   grid: GridMeshSummary;
   /** Two-layer soil correction; `null` for uniform soil, absent on older results. */
   twoLayer?: TwoLayerSoilCorrection | null;
+  /** Soil resistivity used for Rg and GPR (ohm-m); absent on older results. */
+  apparentResistivity?: number;
+  /** Effective buried lengths for mesh / step voltage, Lm and Ls (m); absent on older results. */
+  effectiveMeshLength?: number;
+  effectiveStepLength?: number;
+  /** Conductor diameter (m) and burial depth (m) used; absent on older results. */
+  conductorDiameter?: number;
+  burialDepth?: number;
 }
 
 /**
@@ -201,3 +209,4 @@ export interface CalculationPreview {
   };
   details: CalculationResultDetails;
 }
+

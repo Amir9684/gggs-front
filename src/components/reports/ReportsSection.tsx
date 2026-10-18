@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { ConfirmDialog } from "../ConfirmDialog";
 import { reportsApi } from "../../api/reports.api";
 import { ApiError } from "../../types/api";
-import type { Report } from "../../types/report";
+import { REPORT_TEMPLATE_LABELS_FA, type Report } from "../../types/report";
 
 interface ReportsSectionProps {
   projectId: string;
@@ -102,6 +102,11 @@ export function ReportsSection({ projectId }: ReportsSectionProps) {
                 <span className="text-sm font-medium text-text">
                   {report.name}
                 </span>
+                {report.template && (
+                  <span className="mr-2 rounded-md border border-border-soft px-1.5 py-0.5 text-xs text-text-muted">
+                    {REPORT_TEMPLATE_LABELS_FA[report.template]}
+                  </span>
+                )}
                 <p
                   className="mt-1 font-mono text-xs tabular text-text-muted"
                   dir="ltr"
@@ -142,3 +147,4 @@ export function ReportsSection({ projectId }: ReportsSectionProps) {
     </div>
   );
 }
+
