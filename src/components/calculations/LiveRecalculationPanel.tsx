@@ -23,14 +23,19 @@ interface Inputs {
   surfaceLayerResistivity: number;
   surfaceLayerThickness: number;
   burialDepth: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
+type NumericInputKey = {
+  [K in keyof Inputs]: Inputs[K] extends number ? K : never;
+}[keyof Inputs];
+
 interface SliderSpec {
-  key: keyof Inputs;
+  key: NumericInputKey;
   label: string;
   unit: string;
   step: number;
-  /** Slider range; `null` ends are derived from the case's own value. */
   min: number | ((base: number) => number);
   max: number | ((base: number) => number);
 }
@@ -115,7 +120,7 @@ export function LiveRecalculationPanel({
       .catch((err: unknown) => {
         if (cancelled) return;
         setGridError(
-          err instanceof ApiError ? err.messages[0] : "دریافت شبکه ناموفق بود.",
+          err instanceof ApiError ? err.messages[0] : "دریافت شبکه ناموفق بود."
         );
       });
     return () => {
@@ -133,9 +138,11 @@ export function LiveRecalculationPanel({
             surfaceLayerResistivity: settings.surfaceLayerResistivity,
             surfaceLayerThickness: settings.surfaceLayerThickness,
             burialDepth: grid.burialDepth,
+            createdAt: grid.createdAt,
+            updatedAt: grid.updatedAt,
           }
         : null,
-    [fault, settings, grid],
+    [fault, settings, grid]
   );
 
   if (!fault || !settings) {
@@ -206,7 +213,7 @@ function Sliders({
         setError(
           err instanceof ApiError
             ? err.messages[0]
-            : "محاسبهٔ پیش‌نمایش ناموفق بود.",
+            : "محاسبهٔ پیش‌نمایش ناموفق بود."
         );
       })
       .finally(() => {
@@ -229,12 +236,12 @@ function Sliders({
             permissibleTouchVoltage: preview.permissibleTouchVoltage,
             permissibleStepVoltage: preview.permissibleStepVoltage,
             safe: preview.safe,
-            createdAt: "",
-            updatedAt: "",
+            createdAt: base.createdAt,
+            updatedAt: base.updatedAt,
             details: preview.details,
           }
         : null,
-    [preview],
+    [preview]
   );
 
   return (
@@ -242,10 +249,7 @@ function Sliders({
       <div className="flex flex-col gap-4">
         {SLIDERS.map((spec) => {
           const min = bound(spec.min, base[spec.key]);
-          const max = Math.max(
-            bound(spec.max, base[spec.key]),
-            base[spec.key],
-          );
+          const max = Math.max(bound(spec.max, base[spec.key]), base[spec.key]);
           const value = inputs[spec.key];
           return (
             <div key={spec.key} className="flex flex-col gap-1">
@@ -302,7 +306,9 @@ function Sliders({
         )}
       </div>
 
-      <div className={isLoading && preview ? "opacity-60 transition-opacity" : ""}>
+      <div
+        className={isLoading && preview ? "opacity-60 transition-opacity" : ""}
+      >
         {error && (
           <p className="mb-3 rounded-lg border border-danger/30 bg-danger/10 px-3.5 py-2.5 text-sm text-danger">
             {error}

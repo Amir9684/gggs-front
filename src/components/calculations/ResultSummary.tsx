@@ -63,7 +63,7 @@ export function ResultSummary({ result, bodyWeight }: ResultSummaryProps) {
           {result.safe ? "طرح ایمن است" : "طرح ایمن نیست"}
         </span>
         <span className="font-mono text-xs tabular text-text-faint" dir="ltr">
-          {new Date(result.createdAt).toLocaleString("en-US")}
+          {new Date(result.createdAt).toLocaleString("fa-IR")}
         </span>
       </div>
 
