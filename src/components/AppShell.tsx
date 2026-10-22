@@ -21,6 +21,9 @@ export function AppShell() {
               <Link to="/" className="transition-colors hover:text-text">
                 پروژه‌ها
               </Link>
+              <Link to="/split-factor" className="transition-colors hover:text-text">
+                ضریب تقسیم جریان
+              </Link>
               <RoleGate roles={[UserRole.ADMIN]}>
                 <Link to="/admin/users" className="transition-colors hover:text-text">
                   مدیریت کاربران
@@ -50,3 +53,4 @@ export function AppShell() {
     </div>
   );
 }
+

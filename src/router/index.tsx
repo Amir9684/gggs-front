@@ -13,6 +13,7 @@ import { ProjectsPage } from '../pages/projects/ProjectsPage';
 import { ProjectDetailPage } from '../pages/projects/ProjectDetailPage';
 import { GridEditorPage } from '../pages/grids/GridEditorPage';
 import { CalculationCaseDetailPage } from '../pages/calculations/CalculationCaseDetailPage';
+import { SplitFactorPage } from '../pages/split-factor/SplitFactorPage';
 import { UserRole } from '../types/user';
 
 /**
@@ -48,6 +49,7 @@ export const router = createBrowserRouter([
             path: '/projects/:projectId/calculations/:caseId',
             element: <CalculationCaseDetailPage />,
           },
+          { path: '/split-factor', element: <SplitFactorPage /> },
           {
             element: <RequireRole roles={[UserRole.ADMIN]} />,
             children: [{ path: '/admin/users', element: <UsersPage /> }],
@@ -59,3 +61,4 @@ export const router = createBrowserRouter([
   },
   { path: '*', element: <NotFoundPage /> },
 ]);
+
