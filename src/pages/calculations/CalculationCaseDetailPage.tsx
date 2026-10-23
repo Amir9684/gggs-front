@@ -5,6 +5,8 @@ import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { FullScreenSpinner } from "../../components/FullScreenSpinner";
 import { CalculationCaseRenameModal } from "../../components/calculations/CalculationCaseRenameModal";
 import { LiveRecalculationPanel } from "../../components/calculations/LiveRecalculationPanel";
+import { GalerkinSettingsCard } from "../../components/calculations/GalerkinSettingsCard";
+import { GalerkinSolverSummary } from "../../components/calculations/GalerkinSolverSummary";
 import { ResultSummary } from "../../components/calculations/ResultSummary";
 import { VoltageHeatmap } from "../../components/calculations/VoltageHeatmap";
 import { VoltageSurface3D } from "../../components/calculations/VoltageSurface3D";
@@ -211,8 +213,8 @@ export function CalculationCaseDetailPage() {
             </span>
           )}
         {designMethod === DesignMethod.GALERKIN ? (
-          <span className="text-copper-text">
-            (اجرای محاسبه برای این روش هنوز در بک‌اند پیاده‌سازی نشده است)
+          <span className="text-text-faint">
+            (محاسبه با حل‌گر عددی گالرکین اجرا می‌شود)
           </span>
         ) : (
           <span className="text-text-faint">
@@ -223,6 +225,16 @@ export function CalculationCaseDetailPage() {
       </div>
 
       <ConductorSummaryCard conductor={calculationCase.conductor} />
+
+      {designMethod === DesignMethod.GALERKIN && (
+        <GalerkinSettingsCard
+          // Remount when the saved values change so the form shows them.
+          key={JSON.stringify(calculationCase.galerkinSettings ?? null)}
+          calculationCase={calculationCase}
+          readOnly={readOnly}
+          onSaved={fetchCase}
+        />
+      )}
 
       <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
         <div className="rounded-xl border border-border-soft bg-surface p-5">
@@ -297,7 +309,9 @@ export function CalculationCaseDetailPage() {
           <div>
             <h3 className="text-sm font-bold text-text">نتایج محاسبه</h3>
             <p className="mt-0.5 text-xs text-text-muted">
-              مقاومت شبکه، GPR، ولتاژ مش/گام و ارزیابی ایمنی طبق IEEE 80.
+              {designMethod === DesignMethod.GALERKIN
+                ? "مقاومت شبکه، GPR، ولتاژ تماس/گام از حل عددی میدان و ارزیابی ایمنی."
+                : "مقاومت شبکه، GPR، ولتاژ مش/گام و ارزیابی ایمنی طبق IEEE 80."}
             </p>
           </div>
           {!readOnly && (
@@ -332,7 +346,7 @@ export function CalculationCaseDetailPage() {
             <div className="flex flex-col gap-6">
               {/* Results saved before the backend persisted `details` have
                   none; only people who can run calculations get the hint. */}
-              {!result.details && !readOnly && (
+              {!result.details && !result.solverDetails && !readOnly && (
                 <p className="rounded-lg border border-border-soft bg-surface-2 px-3.5 py-2.5 text-xs text-text-muted">
                   این نتیجه پیش از ذخیرهٔ جزئیات محاسبه ثبت شده است. برای
                   مشاهدهٔ حدود مجاز ۵۰ و ۷۰ کیلوگرم، هشدارها و تعداد مش‌ها،
@@ -344,6 +358,10 @@ export function CalculationCaseDetailPage() {
                 result={result}
                 bodyWeight={settings?.bodyWeight}
               />
+
+              {result.solverDetails && (
+                <GalerkinSolverSummary details={result.solverDetails} />
+              )}
 
               {result.touchVoltageMap?.length ||
               result.stepVoltageMap?.length ? (
@@ -393,7 +411,13 @@ export function CalculationCaseDetailPage() {
                 <VoltageProfileChart points={result.voltageProfile} />
               ) : null}
 
-              {!readOnly && (
+              {!readOnly && designMethod === DesignMethod.GALERKIN && (
+                <p className="text-xs text-text-faint">
+                  گزارش PDF برای روش گالرکین هنوز در دسترس نیست.
+                </p>
+              )}
+
+              {!readOnly && designMethod !== DesignMethod.GALERKIN && (
                 <div>
                   <button
                     type="button"
@@ -412,6 +436,7 @@ export function CalculationCaseDetailPage() {
         </div>
       </div>
 
+      {designMethod !== DesignMethod.GALERKIN && (
       <div className="mt-6 rounded-xl border border-border-soft bg-surface p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -437,6 +462,7 @@ export function CalculationCaseDetailPage() {
           </div>
         )}
       </div>
+      )}
 
       {isEditing && (
         <CalculationCaseRenameModal

@@ -24,6 +24,41 @@ export interface CaseSetting {
   updatedAt: string;
 }
 
+/** Galerkin solver inputs of a case (`CalculationCase.galerkinSettings`). */
+export interface GalerkinSettings {
+  /** Conductors are cut into segments of about this length (m). */
+  segmentLength: number;
+  /** Ground rod radius (m). */
+  rodRadius: number;
+  /** Ring well diameter (m). */
+  wellDiameter: number;
+  /** Ring well length (m). */
+  wellLength: number;
+  /** Hole factor Kro of the wells. */
+  kro: number;
+}
+
+/** What a Galerkin case uses until its settings are edited (same as the backend). */
+export const DEFAULT_GALERKIN_SETTINGS: GalerkinSettings = {
+  segmentLength: 5,
+  rodRadius: 0.0125,
+  wellDiameter: 0.3,
+  wellLength: 3,
+  kro: 1,
+};
+
+/** Solver notes stored with a Galerkin result (`CalculationResult.solverDetails`). */
+export interface GalerkinSolverDetails {
+  method: "GALERKIN";
+  segmentLength: number;
+  segmentCount: number;
+  rodCount: number;
+  wellCount: number;
+  meshCount: number;
+  /** Surge impedance (ohm); `null` unless the grid has 4 to 64 meshes. */
+  surgeImpedance: number | null;
+}
+
 /**
  * Mirrors `CalculationCase` entity on the backend. `getAll` only
  * `leftJoinAndSelect`s `project`/`grid`/`soilModel` — `fault`/`settings`
@@ -49,6 +84,8 @@ export interface CalculationCase {
   designMethod: DesignMethod;
   /** Set for the IEEE methods; `null` for Galerkin. */
   soilLayering: SoilLayeringMethod | null;
+  /** Galerkin cases only; `null` / absent means the defaults apply. */
+  galerkinSettings?: Partial<GalerkinSettings> | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -174,6 +211,8 @@ export interface CalculationResult {
   updatedAt: string;
   /** Intermediate engine values; `null` for results saved before they were persisted. */
   details?: CalculationResultDetails | null;
+  /** Solver notes of a Galerkin result; `null` / absent for IEEE results. */
+  solverDetails?: GalerkinSolverDetails | null;
   /** Only present on the response from `getResults`. */
   stepVoltageMap?: SamplePoint[];
   /** Only present on the response from `getResults`. */

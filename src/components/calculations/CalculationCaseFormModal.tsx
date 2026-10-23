@@ -312,11 +312,11 @@ export function CalculationCaseFormModal({
               </p>
             )}
             {selectedMethod === DesignMethod.GALERKIN ? (
-              <p className="mt-2 text-xs text-copper-text">
-                این انتخاب ذخیره می‌شود، اما اجرای محاسبه با موتور «
-                {DESIGN_METHOD_LABELS_FA[selectedMethod]}» هنوز در بک‌اند
-                پیاده‌سازی نشده و با خطا مواجه خواهد شد. فعلاً فقط IEEE 80-2000
-                و IEEE 80-86 قابل اجرا هستند.
+              <p className="mt-2 text-xs text-text-faint">
+                محاسبه با حل‌گر عددی «{DESIGN_METHOD_LABELS_FA[selectedMethod]}»
+                اجرا می‌شود. این روش فقط خاک تک‌لایه و شبکهٔ متعامد را
+                پشتیبانی می‌کند؛ تنظیمات حل‌گر را بعد از ساخت کیس در صفحهٔ کیس
+                تغییر دهید.
               </p>
             ) : (
               <p className="mt-2 text-xs text-text-faint">
@@ -569,3 +569,4 @@ export function CalculationCaseFormModal({
     </Modal>
   );
 }
+

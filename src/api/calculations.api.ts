@@ -4,6 +4,7 @@ import type {
   CalculationCase,
   CalculationPreview,
   CalculationResult,
+  GalerkinSettings,
 } from "../types/calculation";
 import type { CaseConductorPayload } from "../types/conductor";
 import type { DesignMethod, SoilLayeringMethod } from "../types/design-method";
@@ -109,7 +110,15 @@ export const calculationCasesApi = {
       payload,
     ),
 
+  /** Saves the Galerkin solver inputs of a Galerkin case; omitted fields keep their value. */
+  updateGalerkinSettings: (id: string, payload: Partial<GalerkinSettings>) =>
+    apiClient.put<GalerkinSettings>(
+      `/calculation-cases/${id}/galerkin-settings`,
+      payload,
+    ),
+
   /** Fetches the most recent result (with its sample maps) for this case. */
   getResults: (id: string) =>
     apiClient.get<CalculationResult>(`/calculation-cases/${id}/results`),
 };
+
