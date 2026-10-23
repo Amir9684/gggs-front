@@ -6,7 +6,10 @@ import { FormField } from "../auth/FormField";
 import { SelectField } from "../auth/SelectField";
 import { reportsApi } from "../../api/reports.api";
 import { ApiError } from "../../types/api";
-import type { DesignMethod, SoilLayeringMethod } from "../../types/design-method";
+import type {
+  DesignMethod,
+  SoilLayeringMethod,
+} from "../../types/design-method";
 import {
   CONCRETE_REPORT_TEMPLATES,
   HALF_SECOND,

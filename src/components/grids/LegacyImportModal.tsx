@@ -62,14 +62,36 @@ export function LegacyImportModal({
 
   const handleFile = async (file: File | undefined) => {
     if (!file) return;
+
     setIsReading(true);
     setErrors([]);
     setParsed(null);
+
     try {
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+
+        reader.onload = () => {
+          const result = reader.result;
+
+          if (typeof result !== "string") {
+            reject(new Error("Failed to read file."));
+            return;
+          }
+
+          resolve(result.split(",")[1]);
+        };
+
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(file);
+      });
+
+      console.log(base64);
+
       setParsed(await legacyImportApi.parseGggs(file));
     } catch (err) {
       setErrors(
-        err instanceof ApiError ? err.messages : ["خواندن فایل ناموفق بود."],
+        err instanceof ApiError ? err.messages : ["خواندن فایل ناموفق بود."]
       );
     } finally {
       setIsReading(false);
@@ -128,12 +150,12 @@ function Review({
   const [name, setName] = useState(parsed.fileName.replace(/\.[^.]+$/, ""));
   const [burialDepth, setBurialDepth] = useState(0.5);
   const [material, setMaterial] = useState<string>(
-    parsed.conductor?.material ?? ConductorMaterial.COPPER_ANNEALED_SOFT_DRAWN,
+    parsed.conductor?.material ?? ConductorMaterial.COPPER_ANNEALED_SOFT_DRAWN
   );
   const [crossSection, setCrossSection] = useState(
     parsed.conductor?.crossSectionMm2 && parsed.conductor.crossSectionMm2 > 0
       ? parsed.conductor.crossSectionMm2
-      : 70,
+      : 70
   );
   const [rodLength, setRodLength] = useState(3);
   const [rodDiameter, setRodDiameter] = useState(16);
@@ -171,7 +193,7 @@ function Review({
           properties: defaultPropertiesFor(element.type),
         };
       }),
-    [parsed.elements, material, crossSection, rodLength, rodDiameter],
+    [parsed.elements, material, crossSection, rodLength, rodDiameter]
   );
 
   const handleImport = async () => {
@@ -206,14 +228,14 @@ function Review({
         await gridsApi.delete(created.id).catch(() => undefined);
       }
       setErrors(
-        err instanceof ApiError ? err.messages : ["ورود شبکه ناموفق بود."],
+        err instanceof ApiError ? err.messages : ["ورود شبکه ناموفق بود."]
       );
       setIsSaving(false);
     }
   };
 
   const warnings = parsed.warnings.filter(
-    (warning) => !SILENT_WARNINGS.has(warning.code),
+    (warning) => !SILENT_WARNINGS.has(warning.code)
   );
 
   return (
@@ -234,7 +256,11 @@ function Review({
 
           <div className="grid grid-cols-2 gap-3">
             <Labeled label="عمق دفن (m) — در فایل ذخیره نمی‌شود">
-              <NumberInput value={burialDepth} step={0.05} onChange={setBurialDepth} />
+              <NumberInput
+                value={burialDepth}
+                step={0.05}
+                onChange={setBurialDepth}
+              />
             </Labeled>
             <Labeled label="سطح مقطع هادی (mm²)">
               <NumberInput value={crossSection} onChange={setCrossSection} />
@@ -336,14 +362,16 @@ function FileValues({ parsed }: { parsed: LegacyImport }) {
       ["مقاومت ویژهٔ خاک", `${parsed.soil.resistivity} Ω·m`],
       [
         "لایهٔ سطحی",
-        `${parsed.soil.surfaceLayerResistivity} Ω·m · ${parsed.soil.surfaceLayerThickness.toFixed(3)} m`,
-      ],
+        `${
+          parsed.soil.surfaceLayerResistivity
+        } Ω·m · ${parsed.soil.surfaceLayerThickness.toFixed(3)} m`,
+      ]
     );
   }
   if (parsed.fault) {
     rows.push(
       ["جریان خطا", `${parsed.fault.faultCurrent} A`],
-      ["مدت زمان شوک", `${parsed.fault.shockDuration} s`],
+      ["مدت زمان شوک", `${parsed.fault.shockDuration} s`]
     );
     if (parsed.fault.faultDuration !== null) {
       rows.push(["مدت زمان خطا", `${parsed.fault.faultDuration} s`]);
