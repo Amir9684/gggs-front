@@ -10,6 +10,7 @@ export const ReportTemplate = {
   IEEE_80_86_TWO_LAYER: "IEEE_80_86_TWO_LAYER",
   IEEE_80_2000_ONE_LAYER: "IEEE_80_2000_ONE_LAYER",
   IEEE_80_2000_TWO_LAYER: "IEEE_80_2000_TWO_LAYER",
+  GALERKIN: "GALERKIN",
 } as const;
 
 export type ReportTemplate =
@@ -26,6 +27,7 @@ export const CONCRETE_REPORT_TEMPLATES: readonly ConcreteReportTemplate[] = [
   ReportTemplate.IEEE_80_86_TWO_LAYER,
   ReportTemplate.IEEE_80_2000_ONE_LAYER,
   ReportTemplate.IEEE_80_2000_TWO_LAYER,
+  ReportTemplate.GALERKIN,
 ];
 
 export const REPORT_TEMPLATE_LABELS_FA: Record<ConcreteReportTemplate, string> =
@@ -34,11 +36,12 @@ export const REPORT_TEMPLATE_LABELS_FA: Record<ConcreteReportTemplate, string> =
     [ReportTemplate.IEEE_80_86_TWO_LAYER]: "IEEE 80-86 (خاک دولایه)",
     [ReportTemplate.IEEE_80_2000_ONE_LAYER]: "IEEE 80-2000 (خاک تک‌لایه)",
     [ReportTemplate.IEEE_80_2000_TWO_LAYER]: "IEEE 80-2000 (خاک دولایه)",
+    [ReportTemplate.GALERKIN]: "گالرکین (Galerkin)",
   };
 
 /**
  * The template that matches a case, or `null` when its method has no
- * report yet (Galerkin). Mirrors `resolveReportTemplate` on the backend:
+ * report layout. Mirrors `resolveReportTemplate` on the backend:
  * an IEEE case without a stored layering counts as one-layer.
  */
 export function resolveReportTemplate(
@@ -56,6 +59,9 @@ export function resolveReportTemplate(
     return twoLayer
       ? ReportTemplate.IEEE_80_2000_TWO_LAYER
       : ReportTemplate.IEEE_80_2000_ONE_LAYER;
+  }
+  if (designMethod === "GALERKIN") {
+    return ReportTemplate.GALERKIN;
   }
   return null;
 }

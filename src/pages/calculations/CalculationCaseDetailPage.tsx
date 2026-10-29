@@ -411,13 +411,7 @@ export function CalculationCaseDetailPage() {
                 <VoltageProfileChart points={result.voltageProfile} />
               ) : null}
 
-              {!readOnly && designMethod === DesignMethod.GALERKIN && (
-                <p className="text-xs text-text-faint">
-                  گزارش PDF برای روش گالرکین هنوز در دسترس نیست.
-                </p>
-              )}
-
-              {!readOnly && designMethod !== DesignMethod.GALERKIN && (
+              {!readOnly && (
                 <div>
                   <button
                     type="button"
