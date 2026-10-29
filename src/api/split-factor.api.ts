@@ -1,6 +1,8 @@
 import { apiClient } from '../lib/api-client';
 import type {
   GroundWire,
+  Ieee80CalculatePayload,
+  Ieee80CalculationResult,
   SoniCalculatePayload,
   SoniCalculationResult,
 } from '../types/split-factor';
@@ -27,6 +29,10 @@ export const groundWiresApi = {
 };
 
 export const splitFactorApi = {
+  /** Stateless: split factor from the IEEE Std 80 Annex C curves. */
+  calculateIeee80: (payload: Ieee80CalculatePayload) =>
+    apiClient.post<Ieee80CalculationResult>('/split-factor/ieee80/calculate', payload),
+
   /** Stateless: nothing is saved on the server. */
   calculateSoni: (payload: SoniCalculatePayload) =>
     apiClient.post<SoniCalculationResult>('/split-factor/soni/calculate', payload),

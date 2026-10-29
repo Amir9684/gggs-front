@@ -4,6 +4,7 @@ import { ErrorBanner } from '../../components/auth/ErrorBanner';
 import { FormField } from '../../components/auth/FormField';
 import { SelectField } from '../../components/auth/SelectField';
 import { GroundWiresSection } from '../../components/split-factor/GroundWiresSection';
+import { Ieee80SplitFactorForm } from '../../components/split-factor/Ieee80SplitFactorForm';
 import { groundWiresApi, splitFactorApi } from '../../api/split-factor.api';
 import { ApiError } from '../../types/api';
 import type {
@@ -113,6 +114,7 @@ function toPayload(terminal: TerminalForm): SoniTerminalPayload | string {
 }
 
 export function SplitFactorPage() {
+  const [method, setMethod] = useState<'SONI' | 'IEEE80'>('SONI');
   const [wires, setWires] = useState<GroundWire[]>([]);
   const [wiresLoading, setWiresLoading] = useState(true);
 
@@ -179,9 +181,37 @@ export function SplitFactorPage() {
       <div>
         <h1 className="text-xl font-bold text-text">ضریب تقسیم جریان (Split Factor)</h1>
         <p className="mt-1 text-sm text-text-muted">
-          روش تقریبی (Soni): سهمی از جریان خطا که به شبکهٔ زمین پست می‌رسد.
+          سهمی از جریان خطا که به شبکهٔ زمین پست می‌رسد.
         </p>
+
+        <div className="mt-4 flex gap-2" role="group" aria-label="روش محاسبه">
+          {(
+            [
+              ['SONI', 'روش تقریبی (Soni)'],
+              ['IEEE80', 'استاندارد IEEE 80'],
+            ] as const
+          ).map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              aria-pressed={method === value}
+              onClick={() => setMethod(value)}
+              className={`rounded-full border px-3.5 py-1 text-xs font-medium transition-colors ${
+                method === value
+                  ? 'border-copper/50 bg-copper/10 text-copper-text'
+                  : 'border-border text-text-faint hover:border-text-faint'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
+
+      {method === 'IEEE80' && <Ieee80SplitFactorForm />}
+
+      {method === 'SONI' && (
+        <>
 
       <form onSubmit={handleCalculate} className="flex flex-col gap-5" noValidate>
         <ErrorBanner messages={errors} />
@@ -455,7 +485,12 @@ export function SplitFactorPage() {
         </section>
       )}
 
-      <GroundWiresSection wires={wires} isLoading={wiresLoading} onChanged={loadWires} />
+        </>
+      )}
+
+      {method === 'SONI' && (
+        <GroundWiresSection wires={wires} isLoading={wiresLoading} onChanged={loadWires} />
+      )}
     </div>
   );
 }
