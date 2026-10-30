@@ -110,6 +110,13 @@ export const calculationCasesApi = {
       payload,
     ),
 
+  /** Sets the split factor (a fraction, above 0 and at most 1) of a case's fault parameters. */
+  updateSplitFactor: (id: string, splitFactor: number) =>
+    apiClient.put<{ id: string; splitFactor: number }>(
+      `/calculation-cases/${id}/split-factor`,
+      { splitFactor },
+    ),
+
   /** Saves the Galerkin solver inputs of a Galerkin case; omitted fields keep their value. */
   updateGalerkinSettings: (id: string, payload: Partial<GalerkinSettings>) =>
     apiClient.put<GalerkinSettings>(

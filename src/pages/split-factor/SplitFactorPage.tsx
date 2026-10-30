@@ -5,6 +5,7 @@ import { FormField } from '../../components/auth/FormField';
 import { SelectField } from '../../components/auth/SelectField';
 import { GroundWiresSection } from '../../components/split-factor/GroundWiresSection';
 import { Ieee80SplitFactorForm } from '../../components/split-factor/Ieee80SplitFactorForm';
+import { UseSplitFactorInCase } from '../../components/split-factor/UseSplitFactorInCase';
 import { groundWiresApi, splitFactorApi } from '../../api/split-factor.api';
 import { ApiError } from '../../types/api';
 import type {
@@ -482,6 +483,8 @@ export function SplitFactorPage() {
               </tbody>
             </table>
           </div>
+
+          <UseSplitFactorInCase splitFactorPercent={result.splitFactor} />
         </section>
       )}
 

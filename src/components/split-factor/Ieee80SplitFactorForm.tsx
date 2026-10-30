@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { ErrorBanner } from '../auth/ErrorBanner';
 import { FormField } from '../auth/FormField';
 import { SelectField } from '../auth/SelectField';
+import { UseSplitFactorInCase } from './UseSplitFactorInCase';
 import { splitFactorApi } from '../../api/split-factor.api';
 import { ApiError } from '../../types/api';
 import type {
@@ -186,6 +187,7 @@ export function Ieee80SplitFactorForm() {
               {result.clamped === 'LOW' ? '۰٫۱ Ω' : '۲۵ Ω'}) به کار رفته است.
             </p>
           )}
+          <UseSplitFactorInCase splitFactorPercent={result.splitFactor} />
         </section>
       )}
     </div>
