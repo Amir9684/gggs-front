@@ -5,6 +5,10 @@ import { FormField } from '../../components/auth/FormField';
 import { SelectField } from '../../components/auth/SelectField';
 import { GroundWiresSection } from '../../components/split-factor/GroundWiresSection';
 import { Ieee80SplitFactorForm } from '../../components/split-factor/Ieee80SplitFactorForm';
+import {
+  SplitProjectsBar,
+  type SplitInputSnapshot,
+} from '../../components/split-factor/SplitProjectsBar';
 import { UseSplitFactorInCase } from '../../components/split-factor/UseSplitFactorInCase';
 import { groundWiresApi, splitFactorApi } from '../../api/split-factor.api';
 import { ApiError } from '../../types/api';
@@ -114,6 +118,36 @@ function toPayload(terminal: TerminalForm): SoniTerminalPayload | string {
   };
 }
 
+/** Rebuilds the form of a terminal from a saved project's terminal. */
+function fromPayload(terminal: SoniTerminalPayload, index: number): TerminalForm {
+  const base = newTerminal(index + 1);
+  const wire = terminal.groundWire;
+
+  return {
+    ...base,
+    name: terminal.name ?? base.name,
+    faultRe: String(terminal.faultCurrent.re),
+    faultIm: String(terminal.faultCurrent.im),
+    spanLength: String(terminal.spanLength),
+    towerFootingResistance: String(terminal.towerFootingResistance),
+    mutualRe: String(terminal.mutualImpedance.re),
+    mutualIm: String(terminal.mutualImpedance.im),
+    ...(wire.source === 'DIRECT'
+      ? {
+          wireMode: 'DIRECT' as const,
+          zgwRe: String(wire.impedance.re),
+          zgwIm: String(wire.impedance.im),
+        }
+      : {
+          wireMode: 'CATALOG' as const,
+          groundWireId: wire.groundWireId,
+          earthResistivity: String(wire.earthResistivity),
+          resistanceSource: wire.resistanceSource,
+          reactanceSource: wire.reactanceSource,
+        }),
+  };
+}
+
 export function SplitFactorPage() {
   const [method, setMethod] = useState<'SONI' | 'IEEE80'>('SONI');
   const [wires, setWires] = useState<GroundWire[]>([]);
@@ -146,6 +180,33 @@ export function SplitFactorPage() {
     setTerminals((current) =>
       current.map((terminal) => (terminal.key === key ? { ...terminal, ...patch } : terminal))
     );
+  };
+
+  /** The form's input for a saved project, or what is wrong with it. */
+  const getSoniInput = (): SplitInputSnapshot => {
+    const rg = num(gridResistance);
+    const payloads = terminals.map(toPayload);
+    const problems = payloads.filter((payload): payload is string => typeof payload === 'string');
+    if (Number.isNaN(rg)) problems.unshift('مقاومت شبکه زمین را وارد کنید.');
+    if (problems.length > 0) return { ok: false, problems };
+
+    return {
+      ok: true,
+      input: { gridResistance: rg, terminals: payloads as SoniTerminalPayload[] },
+    };
+  };
+
+  const applySoniInput = (input: Record<string, unknown>) => {
+    const saved = input as { gridResistance?: number; terminals?: SoniTerminalPayload[] };
+    if (typeof saved.gridResistance !== 'number' || !Array.isArray(saved.terminals) || saved.terminals.length === 0) {
+      setErrors(['ورودی ذخیره‌شدهٔ این پروژه قابل بارگذاری نیست.']);
+      return;
+    }
+
+    setErrors([]);
+    setResult(null);
+    setGridResistance(String(saved.gridResistance));
+    setTerminals(saved.terminals.map(fromPayload));
   };
 
   const handleCalculate = async (e: React.FormEvent) => {
@@ -213,6 +274,8 @@ export function SplitFactorPage() {
 
       {method === 'SONI' && (
         <>
+
+      <SplitProjectsBar method="SONI" getInput={getSoniInput} onLoad={applySoniInput} />
 
       <form onSubmit={handleCalculate} className="flex flex-col gap-5" noValidate>
         <ErrorBanner messages={errors} />

@@ -3,10 +3,12 @@ import { useState } from 'react';
 import { ErrorBanner } from '../auth/ErrorBanner';
 import { FormField } from '../auth/FormField';
 import { SelectField } from '../auth/SelectField';
+import { SplitProjectsBar, type SplitInputSnapshot } from './SplitProjectsBar';
 import { UseSplitFactorInCase } from './UseSplitFactorInCase';
 import { splitFactorApi } from '../../api/split-factor.api';
 import { ApiError } from '../../types/api';
 import type {
+  Ieee80CalculatePayload,
   Ieee80CalculationResult,
   Ieee80FaultType,
   Ieee80FootingSet,
@@ -46,6 +48,54 @@ export function Ieee80SplitFactorForm() {
     // A local source has curves only without distribution lines.
     if (value !== 1) setDistribution('0');
     setResult(null);
+  };
+
+  /** The form's input for a saved project, or what is wrong with it. */
+  const getInput = (): SplitInputSnapshot => {
+    const lines = [transmission, distribution].map((text) =>
+      text.trim() === '' ? NaN : Number(text)
+    );
+    const rg = gridResistance.trim() === '' ? NaN : Number(gridResistance);
+
+    const problems: string[] = [];
+    if (lines.some((count) => !Number.isInteger(count) || count < 0 || count > 18)) {
+      problems.push('تعداد خطوط باید عدد صحیح بین ۰ و ۱۸ باشد.');
+    }
+    if (!(rg > 0)) problems.push('مقاومت شبکه زمین را وارد کنید (بزرگ‌تر از صفر).');
+    if (problems.length > 0) return { ok: false, problems };
+
+    return {
+      ok: true,
+      input: {
+        faultType,
+        footingSet,
+        transmissionLines: lines[0],
+        distributionLines: lines[1],
+        gridResistance: rg,
+      },
+    };
+  };
+
+  const applyInput = (input: Record<string, unknown>) => {
+    const saved = input as Partial<Ieee80CalculatePayload>;
+    if (
+      !saved.faultType ||
+      !saved.footingSet ||
+      saved.transmissionLines === undefined ||
+      saved.distributionLines === undefined ||
+      saved.gridResistance === undefined
+    ) {
+      setErrors(['ورودی ذخیره‌شدهٔ این پروژه قابل بارگذاری نیست.']);
+      return;
+    }
+
+    setErrors([]);
+    setResult(null);
+    setFaultType(saved.faultType);
+    setFootingSet(saved.footingSet);
+    setTransmission(String(saved.transmissionLines));
+    setDistribution(String(saved.distributionLines));
+    setGridResistance(String(saved.gridResistance));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -88,6 +138,8 @@ export function Ieee80SplitFactorForm() {
 
   return (
     <div className="flex flex-col gap-6">
+      <SplitProjectsBar method="IEEE80" getInput={getInput} onLoad={applyInput} />
+
       <form onSubmit={handleSubmit} className="flex flex-col gap-5" noValidate>
         <ErrorBanner messages={errors} />
 
