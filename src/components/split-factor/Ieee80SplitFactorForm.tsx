@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { ErrorBanner } from '../auth/ErrorBanner';
 import { FormField } from '../auth/FormField';
 import { SelectField } from '../auth/SelectField';
+import { GridResistanceFromCase } from './GridResistanceFromCase';
 import { SplitProjectsBar, type SplitInputSnapshot } from './SplitProjectsBar';
 import { UseSplitFactorInCase } from './UseSplitFactorInCase';
 import { splitFactorApi } from '../../api/split-factor.api';
@@ -206,6 +207,10 @@ export function Ieee80SplitFactorForm() {
             onChange={(e) => setGridResistance(e.target.value)}
           />
         </div>
+
+        <GridResistanceFromCase
+          onUse={(value) => setGridResistance(String(Number(value.toFixed(4))))}
+        />
 
         {faultType !== 1 && (
           <p className="text-xs text-text-faint">

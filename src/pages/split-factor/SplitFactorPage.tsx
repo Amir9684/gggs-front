@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { ErrorBanner } from '../../components/auth/ErrorBanner';
 import { FormField } from '../../components/auth/FormField';
 import { SelectField } from '../../components/auth/SelectField';
+import { GridResistanceFromCase } from '../../components/split-factor/GridResistanceFromCase';
 import { GroundWiresSection } from '../../components/split-factor/GroundWiresSection';
 import { Ieee80SplitFactorForm } from '../../components/split-factor/Ieee80SplitFactorForm';
 import {
@@ -280,15 +281,20 @@ export function SplitFactorPage() {
       <form onSubmit={handleCalculate} className="flex flex-col gap-5" noValidate>
         <ErrorBanner messages={errors} />
 
-        <div className="max-w-xs">
-          <FormField
-            id="gridResistance"
-            label="مقاومت شبکه زمین Rg (Ω)"
-            type="number"
-            step="any"
-            dir="ltr"
-            value={gridResistance}
-            onChange={(e) => setGridResistance(e.target.value)}
+        <div className="flex max-w-xl flex-col gap-2">
+          <div className="max-w-xs">
+            <FormField
+              id="gridResistance"
+              label="مقاومت شبکه زمین Rg (Ω)"
+              type="number"
+              step="any"
+              dir="ltr"
+              value={gridResistance}
+              onChange={(e) => setGridResistance(e.target.value)}
+            />
+          </div>
+          <GridResistanceFromCase
+            onUse={(value) => setGridResistance(String(Number(value.toFixed(4))))}
           />
         </div>
 
