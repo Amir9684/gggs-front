@@ -122,9 +122,20 @@ export function SplitProjectsBar({ method, getInput, onLoad }: SplitProjectsBarP
     run(async () => {
       const done = await splitProjectsApi.calculate(selected.id);
       await load();
+      const warnings = done.lastResult?.details.warnings;
+      if (Array.isArray(warnings) && warnings.length > 0) {
+        setErrors(warnings.map(String));
+      }
       return done.lastResult
         ? `ضریب تقسیم پروژه «${selected.name}»: ${done.lastResult.splitFactor.toFixed(2)} %`
         : 'محاسبه انجام شد.';
+    });
+  };
+
+  const handleReport = () => {
+    if (!selected) return;
+    run(async () => {
+      await splitProjectsApi.downloadReport(selected.id, selected.name);
     });
   };
 
@@ -198,6 +209,9 @@ export function SplitProjectsBar({ method, getInput, onLoad }: SplitProjectsBarP
         </button>
         <button type="button" disabled={!selected || busy} onClick={handleCalculate} className={smallButton}>
           محاسبه و ذخیرهٔ نتیجه
+        </button>
+        <button type="button" disabled={!selected || busy} onClick={handleReport} className={smallButton}>
+          دانلود گزارش PDF
         </button>
         <button
           type="button"
