@@ -6,6 +6,7 @@ import { SelectField } from '../../components/auth/SelectField';
 import { GridResistanceFromCase } from '../../components/split-factor/GridResistanceFromCase';
 import { GroundWiresSection } from '../../components/split-factor/GroundWiresSection';
 import { Ieee80SplitFactorForm } from '../../components/split-factor/Ieee80SplitFactorForm';
+import { RamezaniSplitFactorForm } from '../../components/split-factor/RamezaniSplitFactorForm';
 import {
   SplitProjectsBar,
   type SplitInputSnapshot,
@@ -150,7 +151,7 @@ function fromPayload(terminal: SoniTerminalPayload, index: number): TerminalForm
 }
 
 export function SplitFactorPage() {
-  const [method, setMethod] = useState<'SONI' | 'IEEE80'>('SONI');
+  const [method, setMethod] = useState<'SONI' | 'IEEE80' | 'RAMEZANI'>('SONI');
   const [wires, setWires] = useState<GroundWire[]>([]);
   const [wiresLoading, setWiresLoading] = useState(true);
 
@@ -251,6 +252,7 @@ export function SplitFactorPage() {
           {(
             [
               ['SONI', 'روش تقریبی (Soni)'],
+              ['RAMEZANI', 'روش تحلیلی (Ramezani)'],
               ['IEEE80', 'استاندارد IEEE 80'],
             ] as const
           ).map(([value, label]) => (
@@ -272,6 +274,8 @@ export function SplitFactorPage() {
       </div>
 
       {method === 'IEEE80' && <Ieee80SplitFactorForm />}
+
+      {method === 'RAMEZANI' && <RamezaniSplitFactorForm wires={wires} />}
 
       {method === 'SONI' && (
         <>
@@ -560,7 +564,7 @@ export function SplitFactorPage() {
         </>
       )}
 
-      {method === 'SONI' && (
+      {method !== 'IEEE80' && (
         <GroundWiresSection wires={wires} isLoading={wiresLoading} onChanged={loadWires} />
       )}
     </div>
