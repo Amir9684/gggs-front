@@ -1,4 +1,4 @@
-export type SplitMethod = 'SONI' | 'IEEE80' | 'RAMEZANI';
+export type SplitMethod = 'SONI' | 'IEEE80' | 'RAMEZANI' | 'DAWALIBI';
 
 /** Result stored by the last calculation of a project. */
 export interface SplitProjectResult {

@@ -4,7 +4,16 @@ import { ErrorBanner } from '../auth/ErrorBanner';
 import { FormField } from '../auth/FormField';
 import { SelectField } from '../auth/SelectField';
 import { GridResistanceFromCase } from './GridResistanceFromCase';
+import { SpansEditorModal } from './SpansEditorModal';
 import { SplitProjectsBar, type SplitInputSnapshot } from './SplitProjectsBar';
+import {
+  isUniform,
+  meanOf,
+  parseRows,
+  toRows,
+  uniformRows,
+  type SpanRow,
+} from './spans';
 import { UseSplitFactorInCase } from './UseSplitFactorInCase';
 import { ramezaniApi } from '../../api/ramezani.api';
 import { ApiError } from '../../types/api';
@@ -40,8 +49,11 @@ interface TerminalForm {
   towerFootingResistance: string;
   /** ...and the part of the line that has a ground wire, in percent. */
   wireCoverage: string;
-  /** Set when a loaded project had unequal spans, shown as the means. */
-  loadedNonUniform: boolean;
+  /**
+   * Spans edited one by one; `null` means the equal spans above. A saved
+   * project with unequal spans loads into this.
+   */
+  customSpans: SpanRow[] | null;
 }
 
 let nextKey = 1;
@@ -67,7 +79,7 @@ function newTerminal(index: number): TerminalForm {
     spanLength: '300',
     towerFootingResistance: '10',
     wireCoverage: '100',
-    loadedNonUniform: false,
+    customSpans: null,
   };
 }
 
@@ -83,17 +95,31 @@ function toPayload(terminal: TerminalForm): RamezaniTerminalPayload | string {
   const label = terminal.name || 'ترمینال';
   const faultCurrent = { re: num(terminal.faultRe), im: num(terminal.faultIm) };
   const mutual = { re: num(terminal.mutualRe), im: num(terminal.mutualIm) };
-  const spanCount = num(terminal.spanCount);
-  const spanLength = num(terminal.spanLength);
-  const footing = num(terminal.towerFootingResistance);
   const coverage = num(terminal.wireCoverage);
 
-  const numbers = [faultCurrent.re, faultCurrent.im, mutual.re, mutual.im, spanLength, footing, coverage];
-  if (numbers.some((value) => Number.isNaN(value)) || Number.isNaN(spanCount)) {
+  if ([faultCurrent.re, faultCurrent.im, mutual.re, mutual.im, coverage].some(Number.isNaN)) {
     return `${label}: همهٔ فیلدهای عددی را پر کنید.`;
   }
-  if (!Number.isInteger(spanCount) || spanCount < 1 || spanCount > 200) {
-    return `${label}: تعداد span باید عدد صحیح بین ۱ و ۲۰۰ باشد.`;
+
+  let spans: Array<{ length: number; towerFootingResistance: number }>;
+  if (terminal.customSpans) {
+    const parsed = parseRows(terminal.customSpans, 1);
+    if (!parsed.ok) return `${label}: ${parsed.problem}`;
+    spans = parsed.spans;
+  } else {
+    const spanCount = num(terminal.spanCount);
+    const spanLength = num(terminal.spanLength);
+    const footing = num(terminal.towerFootingResistance);
+    if ([spanCount, spanLength, footing].some(Number.isNaN)) {
+      return `${label}: همهٔ فیلدهای عددی را پر کنید.`;
+    }
+    if (!Number.isInteger(spanCount) || spanCount < 1 || spanCount > 200) {
+      return `${label}: تعداد span باید عدد صحیح بین ۱ و ۲۰۰ باشد.`;
+    }
+    spans = Array.from({ length: spanCount }, () => ({
+      length: spanLength,
+      towerFootingResistance: footing,
+    }));
   }
   if (!(coverage > 0 && coverage <= 100)) {
     return `${label}: نسبت طول خط دارای سیم گارد باید بین ۰ و ۱۰۰٪ باشد.`;
@@ -124,10 +150,7 @@ function toPayload(terminal: TerminalForm): RamezaniTerminalPayload | string {
     faultCurrent,
     groundWire,
     mutualImpedance: mutual,
-    spans: Array.from({ length: spanCount }, () => ({
-      length: spanLength,
-      towerFootingResistance: footing,
-    })),
+    spans,
     groundWireFraction: coverage / 100,
   };
 }
@@ -138,14 +161,8 @@ function fromPayload(terminal: RamezaniTerminalPayload, index: number): Terminal
   const wire = terminal.groundWire;
   const spans = terminal.spans;
 
-  const meanLength = spans.reduce((sum, span) => sum + span.length, 0) / spans.length;
-  const meanFooting =
-    spans.reduce((sum, span) => sum + span.towerFootingResistance, 0) / spans.length;
-  const uniform = spans.every(
-    (span) =>
-      span.length === spans[0].length &&
-      span.towerFootingResistance === spans[0].towerFootingResistance
-  );
+  const mean = meanOf(spans);
+  const uniform = isUniform(spans);
 
   return {
     ...base,
@@ -155,10 +172,10 @@ function fromPayload(terminal: RamezaniTerminalPayload, index: number): Terminal
     mutualRe: String(terminal.mutualImpedance.re),
     mutualIm: String(terminal.mutualImpedance.im),
     spanCount: String(spans.length),
-    spanLength: String(Number(meanLength.toFixed(4))),
-    towerFootingResistance: String(Number(meanFooting.toFixed(4))),
+    spanLength: String(Number(mean.length.toFixed(4))),
+    towerFootingResistance: String(Number(mean.towerFootingResistance.toFixed(4))),
     wireCoverage: String(Number((terminal.groundWireFraction * 100).toFixed(2))),
-    loadedNonUniform: !uniform,
+    customSpans: uniform ? null : toRows(spans),
     ...(wire.source === 'DIRECT'
       ? {
           wireMode: 'DIRECT' as const,
@@ -195,6 +212,7 @@ export function RamezaniSplitFactorForm({ wires }: RamezaniSplitFactorFormProps)
   const [errors, setErrors] = useState<string[]>([]);
   const [isCalculating, setIsCalculating] = useState(false);
   const [result, setResult] = useState<RamezaniCalculationResult | null>(null);
+  const [editingKey, setEditingKey] = useState<number | null>(null);
 
   const updateTerminal = (key: number, patch: Partial<TerminalForm>) => {
     setTerminals((current) =>
@@ -290,7 +308,8 @@ export function RamezaniSplitFactorForm({ wires }: RamezaniSplitFactorFormProps)
     label: string,
     value: string,
     patch: (text: string) => Partial<TerminalForm>,
-    step = 'any'
+    step = 'any',
+    disabled = false
   ) => (
     <FormField
       id={`${id}-${key}`}
@@ -298,6 +317,7 @@ export function RamezaniSplitFactorForm({ wires }: RamezaniSplitFactorFormProps)
       type="number"
       step={step}
       dir="ltr"
+      disabled={disabled}
       value={value}
       onChange={(e) => updateTerminal(key, patch(e.target.value))}
     />
@@ -377,11 +397,11 @@ export function RamezaniSplitFactorForm({ wires }: RamezaniSplitFactorFormProps)
               />
               {field(terminal.key, 'rir', 'جریان خطا – حقیقی (A)', terminal.faultRe, (v) => ({ faultRe: v }))}
               {field(terminal.key, 'rii', 'جریان خطا – موهومی (A)', terminal.faultIm, (v) => ({ faultIm: v }))}
-              {field(terminal.key, 'rcount', 'تعداد span', terminal.spanCount, (v) => ({ spanCount: v }), '1')}
-              {field(terminal.key, 'rlen', 'طول هر span (m)', terminal.spanLength, (v) => ({ spanLength: v }))}
+              {field(terminal.key, 'rcount', 'تعداد span', terminal.spanCount, (v) => ({ spanCount: v }), '1', !!terminal.customSpans)}
+              {field(terminal.key, 'rlen', 'طول هر span (m)', terminal.spanLength, (v) => ({ spanLength: v }), 'any', !!terminal.customSpans)}
               {field(terminal.key, 'rrft', 'مقاومت پایه دکل (Ω)', terminal.towerFootingResistance, (v) => ({
                 towerFootingResistance: v,
-              }))}
+              }), 'any', !!terminal.customSpans)}
               {field(terminal.key, 'rcov', 'درصد طول خط دارای سیم گارد', terminal.wireCoverage, (v) => ({
                 wireCoverage: v,
               }))}
@@ -393,12 +413,29 @@ export function RamezaniSplitFactorForm({ wires }: RamezaniSplitFactorFormProps)
               }))}
             </div>
 
-            {terminal.loadedNonUniform && (
-              <p className="mt-3 text-xs text-copper-text">
-                این پروژه span‌های نایکنواخت دارد؛ فرم میانگین طول و مقاومت را نشان می‌دهد و با
-                ذخیرهٔ دوبارهٔ پروژه، span‌ها یکنواخت می‌شوند.
-              </p>
-            )}
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setEditingKey(terminal.key)}
+                className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-text transition-colors hover:border-text-faint"
+              >
+                ویرایش تک‌تک spanها
+              </button>
+              {terminal.customSpans && (
+                <>
+                  <span className="text-xs text-copper-text">
+                    {terminal.customSpans.length} span با مقادیر دستی
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => updateTerminal(terminal.key, { customSpans: null })}
+                    className="text-xs text-text-faint underline transition-colors hover:text-text"
+                  >
+                    بازگشت به spanهای یکنواخت
+                  </button>
+                </>
+              )}
+            </div>
 
             <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
               <SelectField
@@ -570,6 +607,25 @@ export function RamezaniSplitFactorForm({ wires }: RamezaniSplitFactorFormProps)
 
           <UseSplitFactorInCase splitFactorPercent={result.splitFactor} />
         </section>
+      )}
+
+      {editingKey !== null && (
+        <SpansEditorModal
+          title="ویرایش spanها"
+          minimum={1}
+          initialRows={(() => {
+            const target = terminals.find((t) => t.key === editingKey);
+            if (!target) return [];
+            if (target.customSpans) return target.customSpans;
+            const count = Math.min(200, Math.max(1, Math.round(num(target.spanCount)) || 1));
+            return uniformRows(count, target.spanLength, target.towerFootingResistance);
+          })()}
+          onClose={() => setEditingKey(null)}
+          onSave={(rows) => {
+            updateTerminal(editingKey, { customSpans: rows, spanCount: String(rows.length) });
+            setEditingKey(null);
+          }}
+        />
       )}
     </div>
   );
